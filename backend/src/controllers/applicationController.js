@@ -7,19 +7,19 @@ const applyToJob = async (req, res) => {
   try {
     const { jobId, cvProfileId } = req.body;
     if (!jobId) {
-      return res.status(400).json({ message: "Thiếu jobId" });
+      return res.status(400).json({ message: "Missing jobId" });
     }
 
     const job = await Job.findById(jobId);
     if (!job || job.status !== "open") {
-      return res.status(404).json({ message: "Không tìm thấy tin hoặc tin đã đóng" });
+      return res.status(404).json({ message: "Job post not found or is closed" });
     }
 
     let cvProfile;
     if (cvProfileId) {
       cvProfile = await CvProfile.findById(cvProfileId);
       if (!cvProfile || cvProfile.userId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ message: "Hồ sơ CV không hợp lệ" });
+        return res.status(403).json({ message: "Invalid CV profile" });
       }
     } else {
       cvProfile = await CvProfile.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
@@ -27,9 +27,9 @@ const applyToJob = async (req, res) => {
         const email = req.user.email || "candidate";
         cvProfile = await CvProfile.create({
           userId: req.user._id,
-          fullName: email.split("@")[0] || "Ứng viên",
+          fullName: email.split("@")[0] || "Candidate",
           summary:
-            "Hồ sơ tạo tự động khi ứng tuyển (demo). Hãy bổ sung CV đầy đủ trong Profile & CV để có điểm khớp AI.",
+            "Profile automatically created upon application (demo). Please complete your CV details in Profile & CV to generate AI matching score.",
           skills: [],
           embedding: [],
           isLookingForJob: true,
@@ -42,7 +42,7 @@ const applyToJob = async (req, res) => {
       candidateId: req.user._id,
     });
     if (existing) {
-      return res.status(400).json({ message: "Bạn đã ứng tuyển tin này rồi" });
+      return res.status(400).json({ message: "You have already applied to this job" });
     }
 
     let matchingScore = 0;
@@ -71,7 +71,7 @@ const applyToJob = async (req, res) => {
 
     try {
       const Notification = require('../models/Notification');
-      const scoreText = matchingScore > 0 ? ` — Điểm khớp: ${matchingScore}%` : '';
+      const scoreText = matchingScore > 0 ? ` — Match score: ${matchingScore}%` : '';
 
       await Notification.updateMany(
         { userId: req.user._id, jobId: job._id, type: 'job_match' },
@@ -81,8 +81,8 @@ const applyToJob = async (req, res) => {
       await Notification.create({
         userId: req.user._id,
         type: 'new_application',
-        title: `Đã ứng tuyển: ${job.title}`,
-        body: `Đơn ứng tuyển của bạn đã được gửi thành công (sử dụng CV: ${cvProfile.fullName})${scoreText}`,
+        title: `Applied successfully: ${job.title}`,
+        body: `Your job application has been submitted successfully (CV used: ${cvProfile.fullName})${scoreText}`,
         matchingScore: matchingScore || null,
         jobId: job._id,
         applicationId: application._id,
@@ -92,8 +92,8 @@ const applyToJob = async (req, res) => {
       await Notification.create({
         userId: job.employerId,
         type: 'new_application',
-        title: `Ứng viên mới cho: ${job.title}`,
-        body: `${cvProfile.fullName || req.user.email} vừa ứng tuyển vị trí này${scoreText}`,
+        title: `New applicant for: ${job.title}`,
+        body: `${cvProfile.fullName || req.user.email} has just applied for this position${scoreText}`,
         matchingScore: matchingScore || null,
         jobId: job._id,
         applicationId: application._id,
@@ -101,10 +101,10 @@ const applyToJob = async (req, res) => {
         cvProfileId: cvProfile._id,
       });
     } catch (notifErr) {
-      console.error('[Notification] Lỗi tạo thông báo:', notifErr.message);
+      console.error('[Notification] Error creating notification:', notifErr.message);
     }
 
-    res.status(201).json({ message: "Ứng tuyển thành công", data: populated });
+    res.status(201).json({ message: "Application submitted successfully", data: populated });
 
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -131,14 +131,14 @@ const getApplicationsForJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.jobId);
     if (!job) {
-      return res.status(404).json({ message: "Không tìm thấy tin tuyển dụng" });
+      return res.status(404).json({ message: "Job post not found" });
     }
 
     if (
       job.employerId.toString() !== req.user._id.toString() &&
       req.user.role !== "admin"
     ) {
-      return res.status(403).json({ message: "Không có quyền xem danh sách này" });
+      return res.status(403).json({ message: "You are not authorized to view this list" });
     }
 
     const apps = await Application.find({ jobId: req.params.jobId })
@@ -150,10 +150,8 @@ const getApplicationsForJob = async (req, res) => {
     const appsWithPdfUrl = apps.map(app => {
       const obj = app.toObject();
       if (obj.cvProfileId?.fileUrl) {
-        const relativePath = obj.cvProfileId.fileUrl
-          .replace(/\\/g, '/')
-          .replace(/^.*uploads\//, 'uploads/');
-        obj.cvProfileId.pdfUrl = `${BASE_URL}/${relativePath}`;
+        // Point PDF download path directly to our secure controller endpoint to validate permissions (prevent IDOR)
+        obj.cvProfileId.pdfUrl = `${BASE_URL}/api/cv/${obj.cvProfileId._id}/download`;
       }
       return obj;
     });
@@ -170,23 +168,23 @@ const updateApplicationStatus = async (req, res) => {
     const { status } = req.body;
     const allowedStatuses = ['reviewed', 'interview', 'accepted', 'rejected'];
     if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ message: `Trạng thái không hợp lệ. Cho phép: ${allowedStatuses.join(', ')}` });
+      return res.status(400).json({ message: `Invalid status. Allowed: ${allowedStatuses.join(', ')}` });
     }
 
     const app = await Application.findById(req.params.id).populate('jobId');
-    if (!app) return res.status(404).json({ message: 'Không tìm thấy đơn ứng tuyển' });
+    if (!app) return res.status(404).json({ message: 'Application not found' });
 
     if (
       app.jobId.employerId.toString() !== req.user._id.toString() &&
       req.user.role !== 'admin'
     ) {
-      return res.status(403).json({ message: 'Bạn không có quyền cập nhật đơn này' });
+      return res.status(403).json({ message: 'You are not authorized to update this application' });
     }
 
     app.status = status;
     await app.save();
 
-    res.json({ message: 'Cập nhật trạng thái thành công', data: app });
+    res.json({ message: 'Status updated successfully', data: app });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -196,18 +194,18 @@ const deleteApplication = async (req, res) => {
   try {
     const app = await Application.findById(req.params.id);
     if (!app) {
-      return res.status(404).json({ message: "Không tìm thấy đơn ứng tuyển" });
+      return res.status(404).json({ message: "Application not found" });
     }
 
     if (
       app.candidateId.toString() !== req.user._id.toString() &&
       req.user.role !== "admin"
     ) {
-      return res.status(403).json({ message: "Bạn không có quyền hủy đơn này" });
+      return res.status(403).json({ message: "You are not authorized to cancel this application" });
     }
 
     await Application.findByIdAndDelete(req.params.id);
-    res.json({ message: "Hủy đơn ứng tuyển thành công" });
+    res.json({ message: "Application canceled successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

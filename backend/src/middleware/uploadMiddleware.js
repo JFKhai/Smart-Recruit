@@ -1,18 +1,8 @@
 const multer = require("multer");
-const path = require("path");
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/cvs/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(
-      null,
-      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname),
-    );
-  },
-});
+// Sử dụng memoryStorage để lưu file buffer tạm thời trong RAM, tránh rác đĩa cục bộ trên server.
+// Sau đó sẽ được storageService đẩy trực tiếp lên Cloudflare R2.
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (file.mimetype === "application/pdf") {
@@ -24,8 +14,9 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn 5MB
   fileFilter: fileFilter,
 });
 
 module.exports = upload;
+
