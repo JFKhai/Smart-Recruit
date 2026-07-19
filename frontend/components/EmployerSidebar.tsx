@@ -19,8 +19,8 @@ import {
   Star,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { clearAuth, setAuth, getToken } from '@/lib/auth-storage'
-import { apiFetch } from '@/lib/api'
+import { clearAuth, setAuth } from '@/lib/auth-storage'
+import { apiFetch, apiLogout } from '@/lib/api'
 import { toast } from 'sonner'
 
 const navItems = [
@@ -44,15 +44,8 @@ export default function EmployerSidebar() {
   useEffect(() => {
     const checkUnread = async () => {
       try {
-        const { getToken } = await import('@/lib/auth-storage')
-        if (!getToken()) return
-        const res = await fetch('http://localhost:5000/api/notifications/unread-count', {
-          headers: { Authorization: `Bearer ${getToken()}` }
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setHasUnread((data.count || 0) > 0)
-        }
+        const data = await apiFetch<{ count: number }>('/api/notifications/unread-count')
+        setHasUnread((data.count || 0) > 0)
       } catch { /* silent */ }
     }
     checkUnread()
@@ -60,8 +53,8 @@ export default function EmployerSidebar() {
     return () => clearInterval(interval)
   }, [])
 
-  const signOut = () => {
-    clearAuth()
+  const signOut = async () => {
+    await apiLogout() // Gọi backend để xóa cookie + clearAuth localStorage
     router.push('/login?role=employer')
   }
 
@@ -72,10 +65,7 @@ export default function EmployerSidebar() {
         method: 'PATCH',
       })
       const user = res.data
-      const token = getToken()
-      if (token) {
-        setAuth(token, { id: user._id, email: user.email, role: user.role as 'candidate' | 'employer' | 'admin' })
-      }
+      setAuth({ id: user._id, email: user.email, role: user.role as 'candidate' | 'employer' | 'admin' })
       toast.success('Đã chuyển sang giao diện Ứng viên!')
       router.push('/candidate/dashboard')
     } catch (e) {

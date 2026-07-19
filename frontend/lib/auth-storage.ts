@@ -1,4 +1,3 @@
-const TOKEN_KEY = 'smart_recruit_token'
 const USER_KEY = 'smart_recruit_user'
 
 export type StoredUser = {
@@ -7,21 +6,16 @@ export type StoredUser = {
   role: 'candidate' | 'employer' | 'admin'
 }
 
-export function setAuth(token: string, user: StoredUser) {
+// ✅ P0: Lưu thông tin User để hiển thị UI (id, email, role)
+// Token KHÔNG lưu ở đây nữa — token nằm trong HTTPOnly Cookie do Backend set
+export function setAuth(user: StoredUser) {
   if (typeof window === 'undefined') return
-  localStorage.setItem(TOKEN_KEY, token)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
 export function clearAuth() {
   if (typeof window === 'undefined') return
-  localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
-}
-
-export function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return localStorage.getItem(TOKEN_KEY)
 }
 
 export function getStoredUser(): StoredUser | null {
@@ -33,4 +27,10 @@ export function getStoredUser(): StoredUser | null {
   } catch {
     return null
   }
+}
+
+// Giữ lại để không phải sửa nhiều nơi đang import nhưng KHÔNG trả về JWT nữa
+// Dùng /api/auth/me để kiểm tra session thật
+export function getToken(): string | null {
+  return null
 }

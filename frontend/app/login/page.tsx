@@ -21,30 +21,35 @@ function LoginContent() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
+  // Xử lý OAuth callback redirect: backend đã gắn cookie, chỉ cần redirect đúng trang
   useEffect(() => {
-    const token = searchParams.get('token')
-    const role = searchParams.get('role')
-    const id = searchParams.get('id')
-    const emailParam = searchParams.get('email')
+    const oauthSuccess = searchParams.get('oauth')
     const error = searchParams.get('error')
 
     if (error) {
-      const msg = searchParams.get('message') || 'Đăng nhập mạng xã hội thất bại.'
+      const errMap: Record<string, string> = {
+        oauth_disabled: 'Đăng nhập mạng xã hội chưa được kích hoạt trên server này.',
+        auth_failed: 'Đăng nhập thất bại. Vui lòng thử lại.',
+        email_required: 'Tài khoản mạng xã hội không có email. Hãy dùng email/mật khẩu.',
+      }
+      const msg = errMap[error] || searchParams.get('message') || 'Đăng nhập mạng xã hội thất bại.'
       toast.error(decodeURIComponent(msg))
       router.replace('/login')
       return
     }
 
-    if (token && id && emailParam && role) {
-      setAuth(token, {
-        id,
-        email: emailParam,
-        role: role as 'candidate' | 'employer' | 'admin',
-      })
-      toast.success('Đăng nhập thành công!')
-      router.push(
-        role === 'employer' ? '/employer/dashboard' : '/candidate/dashboard',
-      )
+    // oauth=success: backend đã set cookie và redirect đây, gọi /auth/me để lấy user info
+    if (oauthSuccess === 'success') {
+      apiFetch<AuthResponse>('/api/auth/me', { method: 'GET' })
+        .then((data) => {
+          setAuth({ id: data._id, email: data.email, role: data.role })
+          toast.success('Đăng nhập thành công!')
+          router.push(data.role === 'employer' ? '/employer/dashboard' : '/candidate/dashboard')
+        })
+        .catch(() => {
+          toast.error('Xác thực thất bại. Vui lòng đăng nhập lại.')
+          router.replace('/login')
+        })
     }
   }, [searchParams, router])
 
@@ -71,17 +76,14 @@ function LoginContent() {
     setLoading(true)
 
     try {
+      // Backend sẽ trả về user info + gắn HTTPOnly cookie tự động
       const data = await apiFetch<AuthResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
-        skipAuth: true,
       })
 
-      setAuth(data.token, {
-        id: data._id,
-        email: data.email,
-        role: data.role,
-      })
+      // Chỉ lưu user metadata (KHÔNG lưu token) để hiển thị UI
+      setAuth({ id: data._id, email: data.email, role: data.role })
 
       if (data.role !== activeTab && data.role !== 'admin') {
         toast.info(
@@ -137,12 +139,12 @@ function LoginContent() {
               <TabsContent value="candidate">
                 <form onSubmit={handleSubmit} className="space-y-5 mt-6">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Email / Username</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">Email</label>
                     <Input
-                      type="text"
+                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="sarah@example.com or admin"
+                      placeholder="sarah@example.com"
                       required
                     />
                   </div>
@@ -229,12 +231,12 @@ function LoginContent() {
               <TabsContent value="employer">
                 <form onSubmit={handleSubmit} className="space-y-5 mt-6">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">Email / Username</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">Email</label>
                     <Input
-                      type="text"
+                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="hr@techcorp.com or admin"
+                      placeholder="hr@techcorp.com"
                       required
                     />
                   </div>
@@ -276,11 +278,6 @@ function LoginContent() {
               </Link>
             </p>
           </Card>
-
-          {/* <div className="mt-8 p-4 bg-muted/50 border border-border rounded-lg text-sm text-foreground/80">
-            <p className="font-medium mb-1">Demo</p>
-            <p>Chạy backend (port 5000) và frontend. Đăng ký tài khoản mới hoặc dùng tài khoản đã có.</p>
-          </div> */}
         </div>
       </div>
     </PublicLayout>

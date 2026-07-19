@@ -317,10 +317,11 @@ export default function CVPage() {
       form.append('cv', file)
       form.append('fullName', formData.name || 'Ứng viên')
       // Dùng fetch thủ công vì apiFetch set Content-Type JSON
-      const token = typeof window !== 'undefined' ? localStorage.getItem('smart_recruit_token') : null
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/cv/upload`, {
+      // credentials: 'include' để gửi HTTPOnly cookie theo request
+      const { getApiBase } = await import('@/lib/api')
+      const res = await fetch(`${getApiBase()}/api/cv/upload`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include', // Gửi cookie thay vì Authorization header
         body: form,
       })
       const data = await res.json()

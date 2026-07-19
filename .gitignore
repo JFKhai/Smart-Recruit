@@ -1,15 +1,36 @@
-# Node.js
-node_modules/
+# ─── Secrets — KHÔNG bao giờ commit ─────────────────────────────────────────
 .env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
 
-# Next.js
+# ─── Node.js ──────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# ─── Next.js ──────────────────────────────────────────────────────────────────
 .next/
 out/
 build/
 
-# Python & AI
+# ─── Python & AI ──────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
+*.pyo
 venv/
 env/
+.venv/
+ai/__pycache__/
+
+# ─── OS / Editor ──────────────────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.swp
+
+# ─── Uploads (ephemeral — dùng R2 thay thế) ──────────────────────────────────
+backend/uploads/

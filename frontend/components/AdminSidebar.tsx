@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { clearAuth } from '@/lib/auth-storage'
+import { apiLogout } from '@/lib/api'
 
 const navItems = [
   { label: 'Tổng quan', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -28,8 +29,8 @@ export default function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
 
-  const signOut = () => {
-    clearAuth()
+  const signOut = async () => {
+    await apiLogout() // Gọi backend để xóa cookie + clearAuth localStorage
     router.push('/login')
   }
 
