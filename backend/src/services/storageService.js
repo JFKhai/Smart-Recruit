@@ -68,8 +68,26 @@ const getSignedDownloadUrl = async (fileKey) => {
   return url;
 };
 
+/**
+ * Retrieve file as a Buffer from Cloudflare R2
+ * @param {string} fileKey - Key of the file to retrieve
+ * @returns {Promise<Buffer>} - Buffer of the retrieved file
+ */
+const getFileBuffer = async (fileKey) => {
+  if (!fileKey) return null;
+  const command = new GetObjectCommand({
+    Bucket: r2BucketName,
+    Key: fileKey,
+  });
+
+  const response = await s3Client.send(command);
+  const byteArray = await response.Body.transformToByteArray();
+  return Buffer.from(byteArray);
+};
+
 module.exports = {
   uploadFile,
   deleteFile,
   getSignedDownloadUrl,
+  getFileBuffer, // Export getFileBuffer
 };

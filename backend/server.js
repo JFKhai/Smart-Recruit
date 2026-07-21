@@ -101,6 +101,10 @@ const server = app.listen(PORT, () => {
 
   const { startCronJobs } = require("./src/cronJob");
   startCronJobs();
+
+  // Khởi chạy background AI worker xử lý CV
+  const { initCronWorker } = require("./src/services/cronWorker");
+  initCronWorker();
 });
 
 // ─── Graceful Shutdown ────────────────────────────────────────────────────────

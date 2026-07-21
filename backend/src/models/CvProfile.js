@@ -47,7 +47,18 @@ const cvProfileSchema = new mongoose.Schema({
         default: false
     },
 
-    fileUrl: { type: String } 
+    fileUrl: { type: String },
+
+    processingStatus: {
+        type: String,
+        enum: ['queued', 'processing', 'ready', 'failed'],
+        default: 'queued'
+    },
+    processingError: { type: String },
+    attempts: {
+        type: Number,
+        default: 0
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('CvProfile', cvProfileSchema);

@@ -1,152 +1,51 @@
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const pdfParse = require("pdf-parse");
-const { createWorker } = require("tesseract.js");
-const { fromPath } = require("pdf2pic");
 const CvProfile = require("../models/CvProfile");
-const aiService = require("../services/aiService");
-const cvExtractor = require("../services/cvExtractor");
 const storageService = require("../services/storageService");
 const Job = require("../models/Job");
 const Application = require("../models/Application");
 
-// To run OCR, we write the file buffer to temporary storage and clear it immediately
-const extractTextWithOCRFromBuffer = async (pdfBuffer) => {
-  console.log("Using OCR fallback from Buffer...");
-  const tempDir = os.tmpdir();
-  const tempFilename = `ocr_temp_${Date.now()}`;
-  const tempFilePath = path.join(tempDir, `${tempFilename}.pdf`);
-  
-  let imagePath = null;
-
-  try {
-    // Write buffer to temporary file
-    fs.writeFileSync(tempFilePath, pdfBuffer);
-
-    const convert = fromPath(tempFilePath, {
-      density: 200,
-      saveFilename: tempFilename,
-      savePath: tempDir,
-      format: "png",
-      width: 1240,
-      height: 1754,
-    });
-
-    const pageImage = await convert(1, { responseType: "image" });
-    imagePath = pageImage.path;
-    console.log("Temporary OCR image saved at:", imagePath);
-
-    const worker = await createWorker("eng+vie");
-    const {
-      data: { text },
-    } = await worker.recognize(imagePath);
-    await worker.terminate();
-
-    return text;
-  } finally {
-    // Clean up temporary PDF file and temporary image file
-    if (fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
-      console.log("Temporary PDF file deleted.");
-    }
-    if (imagePath && fs.existsSync(imagePath)) {
-      fs.unlinkSync(imagePath);
-      console.log("Temporary image file deleted.");
-    }
-  }
-};
-
 const uploadCv = async (req, res) => {
   try {
     console.log("==========================================");
-    console.log("1. STARTING CV UPLOAD PROCESS (CLOUDFLARE R2)...");
+    console.log("1. STARTING ASYNC CV UPLOAD PROCESS (CLOUDFLARE R2)...");
 
     if (!req.file) {
       return res.status(400).json({ message: "Please provide a PDF file" });
     }
 
-    console.log("2. Received file from memory storage. Size:", req.file.size);
-    const pdfData = await pdfParse(req.file.buffer);
-    let extractedText = pdfData.text;
-
-    console.log("3. Read PDF from RAM. Total characters:", extractedText.length);
-
-    if (!extractedText || extractedText.trim().length < 50) {
-      console.log("PDF contains no text or is scanned image -> Switching to OCR...");
-      extractedText = await extractTextWithOCRFromBuffer(req.file.buffer);
-      console.log("OCR completed. Characters received:", extractedText.length);
-    }
-
-    if (!extractedText || extractedText.trim().length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Unable to read content from this PDF file" });
-    }
-
-    const textToSend = extractedText.substring(0, 3000);
-    console.log(
-      "4. Text snippet sent for embedding:",
-      textToSend.substring(0, 50).replace(/\n/g, " ") + "...",
-    );
-    console.log("5. AI Service URL:", process.env.AI_SERVICE_URL);
-
-    const embeddingVector = await aiService.getEmbedding(textToSend);
-
-    if (embeddingVector && embeddingVector.length > 0) {
-      console.log(
-        "6. SUCCESS! Received vector length:",
-        embeddingVector.length,
-      );
-    } else {
-      console.log("6. FAILURE! Vector is null. Returning empty array.");
-    }
-    
-    console.log("--- EXTRACTING INFORMATION (Gemini -> Groq -> Regex) ---");
-    const extractedData = await cvExtractor.extractCvData(textToSend);
-    if (extractedData && extractedData._source !== "regex") {
-      console.log("7. AI extraction SUCCESSFUL!");
-    } else {
-      console.log("7. AI unavailable -> used Regex Fallback.");
-    }
-
     // Upload PDF file from RAM to Cloudflare R2
-    console.log("8. Uploading file to Cloudflare R2...");
+    console.log("2. Uploading file to Cloudflare R2...");
     const uniqueFilename = `cvs/${req.user._id}-${Date.now()}.pdf`;
     const r2Key = await storageService.uploadFile(
       req.file.buffer,
       uniqueFilename,
       req.file.mimetype
     );
-    console.log("9. R2 upload successful. Key:", r2Key);
+    console.log("3. R2 upload successful. Key:", r2Key);
     console.log("==========================================");
 
     const existingPrimary = await CvProfile.findOne({ userId: req.user._id, isPrimary: true });
+    
+    // Create the CV profile in 'queued' state. The background cron worker will pick it up
+    // and populate the parsed AI fields and embedding vectors.
+    const tempName = req.body.fullName || req.file.originalname || "CV Profile";
     const newCv = await CvProfile.create({
       userId: req.user._id,
-      fullName: extractedData?.fullName || req.body.fullName || "Not updated",
-      headline: extractedData?.headline || "",
-      email: extractedData?.email || "",
-      phone: extractedData?.phone || "",
-      location: extractedData?.location || "",
-      address: extractedData?.address || "",
-      dateOfBirth: extractedData?.dateOfBirth || "",
-      website: extractedData?.website || "",
-      summary: extractedData?.summary || textToSend,
-      skills: extractedData?.skills || [],
-      certifications: extractedData?.certifications || "",
-      experience: extractedData?.experience || [],
-      education: extractedData?.education || [],
+      fullName: tempName,
+      headline: "Processing profile details...",
       fileUrl: r2Key, // Save R2 Key as file URL
-      embedding: embeddingVector || [],
       isLookingForJob: true,
-      isPrimary: !existingPrimary, 
+      isPrimary: !existingPrimary,
+      processingStatus: "queued",
+      attempts: 0
     });
 
-    res.status(201).json({ message: "CV upload successful!", data: newCv });
+    res.status(201).json({ 
+      message: "CV upload successful! Processing details in the background.", 
+      data: newCv 
+    });
   } catch (error) {
-    console.error("CRASH ERROR DURING CV PROCESSING:", error);
-    res.status(500).json({ message: "System error handling profile" });
+    console.error("CRASH ERROR DURING CV UPLOAD SETUP:", error);
+    res.status(500).json({ message: "System error preparing profile upload" });
   }
 };
 

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import SkillTag from '@/components/SkillTag'
-import { FileUp, Palette, Languages, Type, Plus, Download, Save, Loader2, Star, Trash2, FileText, CheckCircle } from 'lucide-react'
+import { FileUp, Palette, Languages, Type, Plus, Download, Save, Loader2, Star, Trash2, FileText, CheckCircle, Eye } from 'lucide-react'
 
 import {
   Select,
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, getApiBase } from '@/lib/api'
 import { toast } from 'sonner'
 
 type CvData = {
@@ -130,7 +130,6 @@ function mapCvToPayload(form: CvData) {
     isLookingForJob: true,
   }
 }
-
 export default function CVPage() {
   const [cvList, setCvList] = useState<CvData[]>([])
   const [formData, setFormData] = useState<CvData>(emptyData)
@@ -148,6 +147,11 @@ export default function CVPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const cvPreviewRef = useRef<HTMLDivElement>(null)
   const [userEmail, setUserEmail] = useState('')
+
+  const handleLanguageChange = (val: 'vi' | 'en') => {
+    setLanguage(val)
+    localStorage.setItem('cv_language', val)
+  }
 
   // Hidden portal + print CSS so only the CV is printed
   const handleExportPDF = () => {
@@ -190,6 +194,14 @@ export default function CVPage() {
   }
 
   useEffect(() => {
+    // Restore language preference safely on client side
+    if (typeof window !== 'undefined') {
+      const savedLang = localStorage.getItem('cv_language') as 'vi' | 'en'
+      if (savedLang) {
+        setLanguage(savedLang)
+      }
+    }
+
     const loadCv = async () => {
       try {
         const userRes = await apiFetch<{ data: { user: any; cv: any } }>('/api/users/me/profile')
@@ -206,6 +218,7 @@ export default function CVPage() {
         if (primary) {
           setCvId(primary._id || null)
           setFormData(primary)
+          setImportedCvFileName(primary.fileUrl ? primary.fileUrl.split(/[\\/]/).pop() || null : null)
         } else {
           setFormData((prev) => ({ ...prev, email }))
         }
@@ -375,6 +388,28 @@ export default function CVPage() {
       certifications: 'Chứng chỉ',
       contact: 'Liên hệ',
       preview: 'Bản xem trước CV',
+      fullName: 'Họ và tên',
+      fullNamePlaceholder: 'Nguyễn Văn A',
+      headline: 'Vị trí / Tiêu đề',
+      headlinePlaceholder: 'Full Stack Developer',
+      email: 'Email',
+      phone: 'Số điện thoại',
+      phonePlaceholder: '+84 901 234 567',
+      location: 'Địa điểm',
+      locationPlaceholder: 'Đà Nẵng, Việt Nam',
+      dateOfBirth: 'Ngày sinh',
+      address: 'Địa chỉ',
+      addressPlaceholder: 'Quận 7, Đà Nẵng',
+      website: 'Website / LinkedIn',
+      objectivePlaceholder: 'Mục tiêu nghề nghiệp của bạn...',
+      experiencePlaceholder: 'Mô tả kinh nghiệm làm việc...',
+      educationPlaceholder: 'Trường học, chuyên ngành...',
+      certificationsPlaceholder: 'Chứng chỉ, giải thưởng...',
+      skillsPlaceholder: 'Thêm kỹ năng mới...',
+      add: 'Thêm',
+      loadingText: 'Đang tải hồ sơ...',
+      importButton: 'Import CV (PDF)',
+      processing: 'Đang xử lý...',
     },
     en: {
       pageTitle: 'CV Builder',
@@ -400,6 +435,28 @@ export default function CVPage() {
       certifications: 'Certifications',
       contact: 'Contact',
       preview: 'CV Live Preview',
+      fullName: 'Full Name',
+      fullNamePlaceholder: 'John Doe',
+      headline: 'Job Title / Headline',
+      headlinePlaceholder: 'Full Stack Developer',
+      email: 'Email',
+      phone: 'Phone Number',
+      phonePlaceholder: '+84 901 234 567',
+      location: 'Location',
+      locationPlaceholder: 'Da Nang, Vietnam',
+      dateOfBirth: 'Date of Birth',
+      address: 'Address',
+      addressPlaceholder: 'District 7, Da Nang',
+      website: 'Website / LinkedIn',
+      objectivePlaceholder: 'Your career objective...',
+      experiencePlaceholder: 'Describe your work experience...',
+      educationPlaceholder: 'Schools, majors...',
+      certificationsPlaceholder: 'Certifications, awards...',
+      skillsPlaceholder: 'Add a new skill...',
+      add: 'Add',
+      loadingText: 'Loading profile...',
+      importButton: 'Import CV (PDF)',
+      processing: 'Processing...',
     },
   }[language]
 
@@ -408,7 +465,7 @@ export default function CVPage() {
       <CandidateLayout>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="ml-3 text-foreground/70">Đang tải hồ sơ...</span>
+          <span className="ml-3 text-foreground/70">{labels.loadingText}</span>
         </div>
       </CandidateLayout>
     )
@@ -496,6 +553,17 @@ export default function CVPage() {
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {cv.fileUrl && (
+                        <a
+                          href={`${getApiBase()}/api/cv/${cv._id}/download`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-lg text-foreground/40 hover:text-blue-500 hover:bg-blue-50 transition-colors"
+                          title="Xem PDF"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </a>
+                      )}
                       {!cv.isPrimary && (
                         <button
                           type="button"
@@ -540,7 +608,7 @@ export default function CVPage() {
                     <Languages className="w-4 h-4" />
                     {labels.language}
                   </p>
-                  <Select value={language} onValueChange={(value: 'vi' | 'en') => setLanguage(value)}>
+                  <Select value={language} onValueChange={(value: 'vi' | 'en') => handleLanguageChange(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -598,35 +666,35 @@ export default function CVPage() {
               <h2 className="text-xl font-semibold mb-5">{labels.profileTitle}</h2>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium block mb-2">Họ và tên</label>
-                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Nguyễn Văn A" />
+                  <label className="text-sm font-medium block mb-2">{labels.fullName}</label>
+                  <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder={labels.fullNamePlaceholder} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Vị trí / Tiêu đề</label>
-                  <Input value={formData.headline} onChange={(e) => setFormData({ ...formData, headline: e.target.value })} placeholder="Full Stack Developer" />
+                  <label className="text-sm font-medium block mb-2">{labels.headline}</label>
+                  <Input value={formData.headline} onChange={(e) => setFormData({ ...formData, headline: e.target.value })} placeholder={labels.headlinePlaceholder} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Email</label>
+                  <label className="text-sm font-medium block mb-2">{labels.email}</label>
                   <Input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Số điện thoại</label>
-                  <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder="+84 901 234 567" />
+                  <label className="text-sm font-medium block mb-2">{labels.phone}</label>
+                  <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} placeholder={labels.phonePlaceholder} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Địa điểm</label>
-                  <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder="Đà Nẵng, Việt Nam" />
+                  <label className="text-sm font-medium block mb-2">{labels.location}</label>
+                  <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} placeholder={labels.locationPlaceholder} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Ngày sinh</label>
+                  <label className="text-sm font-medium block mb-2">{labels.dateOfBirth}</label>
                   <Input type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Địa chỉ</label>
-                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Quận 7, Đà Nẵng" />
+                  <label className="text-sm font-medium block mb-2">{labels.address}</label>
+                  <Input value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder={labels.addressPlaceholder} />
                 </div>
                 <div>
-                  <label className="text-sm font-medium block mb-2">Website / LinkedIn</label>
+                  <label className="text-sm font-medium block mb-2">{labels.website}</label>
                   <Input value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} placeholder="https://..." />
                 </div>
               </div>
@@ -637,19 +705,19 @@ export default function CVPage() {
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium block mb-2">{labels.objective}</label>
-                  <Textarea rows={4} value={formData.objective} onChange={(e) => setFormData({ ...formData, objective: e.target.value })} placeholder="Mục tiêu nghề nghiệp của bạn..." />
+                  <Textarea rows={4} value={formData.objective} onChange={(e) => setFormData({ ...formData, objective: e.target.value })} placeholder={labels.objectivePlaceholder} />
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-2">{labels.experience}</label>
-                  <Textarea rows={6} value={formData.experience} onChange={(e) => setFormData({ ...formData, experience: e.target.value })} placeholder="Mô tả kinh nghiệm làm việc..." />
+                  <Textarea rows={6} value={formData.experience} onChange={(e) => setFormData({ ...formData, experience: e.target.value })} placeholder={labels.experiencePlaceholder} />
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-2">{labels.education}</label>
-                  <Textarea rows={3} value={formData.education} onChange={(e) => setFormData({ ...formData, education: e.target.value })} placeholder="Trường học, chuyên ngành..." />
+                  <Textarea rows={3} value={formData.education} onChange={(e) => setFormData({ ...formData, education: e.target.value })} placeholder={labels.educationPlaceholder} />
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-2">{labels.certifications}</label>
-                  <Textarea rows={2} value={formData.certifications} onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} placeholder="Chứng chỉ, giải thưởng..." />
+                  <Textarea rows={2} value={formData.certifications} onChange={(e) => setFormData({ ...formData, certifications: e.target.value })} placeholder={labels.certificationsPlaceholder} />
                 </div>
               </div>
             </Card>
@@ -667,14 +735,14 @@ export default function CVPage() {
                 <Input
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
-                  placeholder="Thêm kỹ năng mới..."
+                  placeholder={labels.skillsPlaceholder}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') { e.preventDefault(); handleAddSkill() }
                   }}
                 />
                 <Button type="button" onClick={handleAddSkill} variant="outline" className="gap-2">
                   <Plus className="w-4 h-4" />
-                  Thêm
+                  {labels.add}
                 </Button>
               </div>
             </Card>
@@ -687,7 +755,7 @@ export default function CVPage() {
                   <Button asChild variant="outline" className="gap-2" disabled={uploading}>
                     <span>
                       {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileUp className="w-4 h-4" />}
-                      {uploading ? 'Đang xử lý...' : 'Import CV (PDF)'}
+                      {uploading ? labels.processing : labels.importButton}
                     </span>
                   </Button>
                 </label>

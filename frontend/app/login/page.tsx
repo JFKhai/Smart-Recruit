@@ -79,17 +79,11 @@ function LoginContent() {
       // Backend sẽ trả về user info + gắn HTTPOnly cookie tự động
       const data = await apiFetch<AuthResponse>('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role: activeTab }),
       })
 
       // Chỉ lưu user metadata (KHÔNG lưu token) để hiển thị UI
       setAuth({ id: data._id, email: data.email, role: data.role })
-
-      if (data.role !== activeTab && data.role !== 'admin') {
-        toast.info(
-          `Tài khoản này là ${data.role === 'employer' ? 'nhà tuyển dụng' : 'ứng viên'}. Đang chuyển đúng khu vực.`,
-        )
-      }
 
       setLoading(false)
       if (data.role === 'admin') {

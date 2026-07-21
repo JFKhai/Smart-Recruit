@@ -93,15 +93,28 @@ const register = async (req, res) => {
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 const login = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
 
     try {
         const user = await User.findOne({ email });
-        if (user && (await bcrypt.compare(password, user.password))) {
-            return sendTokenCookie(user, 200, res);
-        } else {
-            res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
+        
+        // 1. Check if user exists
+        if (!user) {
+            return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
         }
+
+        // 2. Validate role BEFORE password comparison (prevent timing attacks and CPU load on mismatched portals)
+        if (user.role !== 'admin' && role && user.role !== role) {
+            return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
+        }
+
+        // 3. Compare password
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Email hoặc mật khẩu không chính xác' });
+        }
+
+        return sendTokenCookie(user, 200, res);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
