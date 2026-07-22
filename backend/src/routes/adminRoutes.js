@@ -10,6 +10,9 @@ const {
   closeJob,
   deleteJob,
   getSystemInfo,
+  triggerMatchingJob,
+  getEmailSettings,
+  updateEmailSettings,
 } = require('../controllers/adminController');
 
 router.use(protect, authorize('admin'));
@@ -25,5 +28,8 @@ router.patch('/jobs/:id/close', closeJob);
 router.delete('/jobs/:id', deleteJob);
 
 router.get('/system', getSystemInfo);
+router.get('/system/email-settings', getEmailSettings);
+router.put('/system/email-settings', updateEmailSettings);
+router.post('/trigger-matching', triggerMatchingJob);
 
 module.exports = router;

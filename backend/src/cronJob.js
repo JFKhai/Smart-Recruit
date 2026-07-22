@@ -6,6 +6,7 @@ const JobAlert = require("./models/JobAlert");
 const Application = require("./models/Application");
 const CompanyProfile = require("./models/CompanyProfile");
 const Notification = require("./models/Notification");
+const SystemSetting = require("./models/SystemSetting");
 const aiService = require("./services/aiService");
 const emailService = require("./services/emailService");
 const { matchJobToAlert, isAlertDue } = require("./utils/alertMatching");
@@ -192,52 +193,104 @@ const runCvMatching = async (candidate, cv, openJobs) => {
   }
 };
 
-const startCronJobs = () => {
-  // Demo: every minute; prod: "0 9 * * *"
-  const schedule = "* * * * *";
-  //const schedule = "0 9 * * *";
+const runMatchingProcess = async () => {
   console.log(
-    `[Cron] Đã khởi động luồng gửi email thông báo việc làm (Lịch trình: ${schedule})`
+    "[Cron/Trigger] Đang chạy tác vụ quét việc làm matching lúc:",
+    new Date().toLocaleString()
   );
+  
+  let candidatesProcessed = 0;
+  let emailsSent = 0; // matching logs will count email sends or approximate them
 
-  cron.schedule(schedule, async () => {
-    console.log(
-      "[Cron] Đang chạy tác vụ quét việc làm matching lúc:",
-      new Date().toLocaleString()
+  try {
+    const openJobs = await Job.find({ status: "open" }).populate(
+      "employerId",
+      "email"
     );
-    try {
-      const openJobs = await Job.find({ status: "open" }).populate(
-        "employerId",
-        "email"
-      );
-      if (!openJobs || openJobs.length === 0) return;
-
-      const candidates = await User.find({
-        role: "candidate",
-        isEmailSubscribed: true,
-      });
-
-      for (const candidate of candidates) {
-        let cv = await CvProfile.findOne({
-          userId: candidate._id,
-          isPrimary: true,
-        });
-        if (!cv) {
-          cv = await CvProfile.findOne({ userId: candidate._id }).sort({
-            createdAt: -1,
-          });
-        }
-
-        const handledByAlerts = await runAlertMatching(candidate, cv, openJobs);
-
-        if (!handledByAlerts) {
-          await runCvMatching(candidate, cv, openJobs);
-        }
-      }
-    } catch (error) {
-      console.error("[Cron] Lỗi khi chạy tác vụ matching:", error.message);
+    if (!openJobs || openJobs.length === 0) {
+      console.log("[Cron/Trigger] Không có tin tuyển dụng nào đang mở.");
+      return { openJobsCount: 0, candidatesProcessed: 0 };
     }
-  });
+
+    const candidates = await User.find({
+      role: "candidate",
+      isEmailSubscribed: true,
+    });
+
+    for (const candidate of candidates) {
+      let cv = await CvProfile.findOne({
+        userId: candidate._id,
+        isPrimary: true,
+      });
+      if (!cv) {
+        cv = await CvProfile.findOne({ userId: candidate._id }).sort({
+          createdAt: -1,
+        });
+      }
+
+      // Check matching
+      const handledByAlerts = await runAlertMatching(candidate, cv, openJobs);
+      if (!handledByAlerts) {
+        await runCvMatching(candidate, cv, openJobs);
+      }
+      candidatesProcessed++;
+    }
+
+    console.log(`[Cron/Trigger] Đã xử lý xong: ${candidatesProcessed} ứng viên.`);
+    return {
+      openJobsCount: openJobs.length,
+      candidatesProcessed,
+    };
+  } catch (error) {
+    console.error("[Cron/Trigger] Lỗi khi chạy tác vụ matching:", error.message);
+    throw error;
+  }
 };
 
-module.exports = { startCronJobs };
+let activeCronTask = null;
+
+const startCronJobs = async () => {
+  try {
+    let settingsRecord = await SystemSetting.findOne({ key: 'email_matching_settings' });
+    if (!settingsRecord) {
+      settingsRecord = await SystemSetting.create({
+        key: 'email_matching_settings',
+        value: {
+          isEnabled: true,
+          scheduleType: 'daily',
+          cronExpression: '0 7,17 * * *',
+        }
+      });
+    }
+
+    const { isEnabled, cronExpression } = settingsRecord.value;
+
+    // 1. Stop active cron task if exists
+    if (activeCronTask) {
+      console.log('[Cron] Đang dừng tác vụ cron cũ...');
+      activeCronTask.stop();
+      activeCronTask = null;
+    }
+
+    // 2. If disabled, do not schedule new task
+    if (!isEnabled) {
+      console.log('[Cron] Tác vụ quét matching gửi email tự động đang TẮT theo cấu hình hệ thống.');
+      return;
+    }
+
+    // 3. Schedule cron task
+    console.log(`[Cron] Đã khởi động tác vụ quét matching gửi email (Lịch trình: ${cronExpression})`);
+    
+    activeCronTask = cron.schedule(cronExpression, async () => {
+      try {
+        await runMatchingProcess();
+      } catch (err) {
+        // already logged
+      }
+    });
+  } catch (error) {
+    console.error('[Cron] Lỗi khi khởi động tác vụ email cron:', error.message);
+  }
+};
+
+module.exports = { startCronJobs, runMatchingProcess, reloadCronJobs: startCronJobs };

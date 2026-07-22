@@ -7,26 +7,25 @@ const initTransporter = async () => {
   if (transporter) return transporter;
 
   try {
-    const testAccount = await nodemailer.createTestAccount();
-    
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn('[Email Service] WARNING: RESEND_API_KEY is not set. Emails will not send.');
+    }
+
     transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
+      host: 'smtp.resend.com',
+      port: 465,
+      secure: true,
       auth: {
-        user: testAccount.user, 
-        pass: testAccount.pass, 
+        user: 'resend', 
+        pass: apiKey, 
       },
     });
 
-    console.log('--- EMAIL SERVICE INITIALIZED ---');
-    console.log('Ethereal User:', testAccount.user);
-    console.log('Ethereal Pass:', testAccount.pass);
-    console.log('---------------------------------');
-
+    console.log('[Email Service] Resend SMTP Transporter initialized successfully.');
     return transporter;
   } catch (error) {
-    console.error('Lỗi khởi tạo Email Transporter:', error);
+    console.error('[Email Service] Error initializing Resend SMTP Transporter:', error);
     return null;
   }
 };
@@ -37,6 +36,9 @@ const sendJobMatchEmail = async (user, matchedJobs) => {
     if (!t) throw new Error('Transporter not ready');
 
     if (!matchedJobs || matchedJobs.length === 0) return;
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <onboarding@resend.dev>';
 
     const jobsHtml = matchedJobs.map(job => `
       <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8fafc;">
@@ -49,13 +51,13 @@ const sendJobMatchEmail = async (user, matchedJobs) => {
           </span>
         </p>
         <div style="margin-top: 16px;">
-          <a href="http://localhost:3000/candidate/matches" style="background-color: #2563eb; color: #ffffff; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: 500;">Xem chi tiết & Ứng tuyển</a>
+          <a href="${frontendUrl}/candidate/matches" style="background-color: #2563eb; color: #ffffff; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: 500;">Xem chi tiết & Ứng tuyển</a>
         </div>
       </div>
     `).join('');
 
     const mailOptions = {
-      from: '"Smart Recruit AI" <ai-matching@smartrecruit.vn>',
+      from: sender,
       to: user.email,
       subject: `[Smart Recruit] Có ${matchedJobs.length} việc làm mới siêu phù hợp với bạn! 🎉`,
       html: `
@@ -80,7 +82,7 @@ const sendJobMatchEmail = async (user, matchedJobs) => {
             <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
             <p style="font-size: 13px; color: #94a3b8; text-align: center;">
               Bạn nhận được email này vì đã bật tính năng "Nhận email gợi ý việc làm AI".<br/>
-              Để thay đổi tần suất hoặc tắt thông báo, vui lòng truy cập <a href="http://localhost:3000/candidate/email-settings" style="color: #2563eb;">Cài đặt thông báo</a>.
+              Để thay đổi tần suất hoặc tắt thông báo, vui lòng truy cập <a href="${frontendUrl}/candidate/email-settings" style="color: #2563eb;">Cài đặt thông báo</a>.
             </p>
           </div>
         </div>
@@ -88,10 +90,7 @@ const sendJobMatchEmail = async (user, matchedJobs) => {
     };
 
     const info = await t.sendMail(mailOptions);
-    
-    console.log(`[Email Service] Đã gửi thông báo cho ${user.email}`);
-    console.log(`[Email Service] XEM EMAIL TẠI ĐÂY: ${nodemailer.getTestMessageUrl(info)}`);
-    
+    console.log(`[Email Service] Đã gửi thông báo cho ${user.email} (MessageID: ${info.messageId})`);
     return info;
   } catch (error) {
     console.error(`[Email Service] Lỗi gửi email cho ${user.email}:`, error);
@@ -103,6 +102,9 @@ const sendJobAlertEmail = async (target, alert, matchedJobs) => {
     const t = await initTransporter();
     if (!t) throw new Error('Transporter not ready');
     if (!matchedJobs || matchedJobs.length === 0) return;
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <onboarding@resend.dev>';
 
     const jobsHtml = matchedJobs
       .map((job) => {
@@ -125,7 +127,7 @@ const sendJobAlertEmail = async (target, alert, matchedJobs) => {
           </span>
         </p>
         <div style="margin-top:16px;">
-          <a href="http://localhost:3000/candidate/jobs/${job.id}" style="background:#2563eb;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px;font-weight:500;">Xem chi tiết & Ứng tuyển</a>
+          <a href="${frontendUrl}/candidate/jobs/${job.id}" style="background:#2563eb;color:#fff;padding:8px 16px;text-decoration:none;border-radius:6px;font-weight:500;">Xem chi tiết & Ứng tuyển</a>
         </div>
       </div>`;
       })
@@ -137,7 +139,7 @@ const sendJobAlertEmail = async (target, alert, matchedJobs) => {
     ].join(' &nbsp;•&nbsp; ');
 
     const mailOptions = {
-      from: '"Smart Recruit AI" <ai-matching@smartrecruit.vn>',
+      from: sender,
       to: target.email,
       subject: `[Smart Recruit] ${matchedJobs.length} việc làm mới khớp thông báo "${alert.keyword}" 🔔`,
       html: `
@@ -156,15 +158,14 @@ const sendJobAlertEmail = async (target, alert, matchedJobs) => {
             <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0;" />
             <p style="font-size:13px;color:#94a3b8;text-align:center;">
               Bạn nhận email này vì đã tạo thông báo việc làm trên Smart Recruit.<br/>
-              Quản lý hoặc tắt thông báo tại <a href="http://localhost:3000/candidate/job-alerts" style="color:#2563eb;">Thông báo việc làm</a>.
+              Quản lý hoặc tắt thông báo tại <a href="${frontendUrl}/candidate/job-alerts" style="color:#2563eb;">Thông báo việc làm</a>.
             </p>
           </div>
         </div>`,
     };
 
     const info = await t.sendMail(mailOptions);
-    console.log(`[Email Service] Đã gửi thông báo việc làm cho ${target.email} (keyword: ${alert.keyword})`);
-    console.log(`[Email Service] XEM EMAIL TẠI ĐÂY: ${nodemailer.getTestMessageUrl(info)}`);
+    console.log(`[Email Service] Đã gửi thông báo việc làm cho ${target.email} (keyword: ${alert.keyword}) (MessageID: ${info.messageId})`);
     return info;
   } catch (error) {
     console.error(`[Email Service] Lỗi gửi job-alert email cho ${target?.email}:`, error);
