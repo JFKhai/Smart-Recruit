@@ -1,4 +1,14 @@
 require("dotenv").config(); // Load biến môi trường
+const Sentry = require("@sentry/node");
+
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    tracesSampleRate: 1.0,
+  });
+  console.log('[Sentry] Khởi tạo giám sát lỗi Backend thành công.');
+}
+
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -94,6 +104,16 @@ app.use("/api/notifications", require("./src/routes/notificationRoutes"));
 app.use("/api/job-alerts", require("./src/routes/jobAlertRoutes"));
 app.use("/api/reviews", require("./src/routes/reviewRoutes"));
 app.use("/api/admin", require("./src/routes/adminRoutes"));
+
+// Debug Sentry endpoint to test error capturing
+app.get("/debug-sentry", (req, res) => {
+  throw new Error("Sentry Debug Backend Error: Kiểm tra giám sát lỗi hoạt động tốt!");
+});
+
+// Sentry error handler must be registered before other error handlers and after all controllers
+if (process.env.SENTRY_DSN) {
+  Sentry.setupExpressErrorHandler(app);
+}
 
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
