@@ -1,0 +1,318 @@
+{
+  "metadata": {
+    "exportedAt": "2026-07-22T08:58:37.878Z",
+    "version": "1.0"
+  },
+  "collections": {
+    "users": [
+      {
+        "_id": {
+          "$oid": "6a5b84bee56882c9738915d9"
+        },
+        "email": "ttluat@gmail.com",
+        "password": "$2b$10$LU6OEgpZM.yUqvbf7R4KU.0laAr0kEywork0czt6wHXa0e3U2rnMy",
+        "role": "candidate",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-07-18T13:50:54.836Z"
+        },
+        "updatedAt": {
+          "$date": "2026-07-18T13:50:54.836Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce4f54b4d2525561956"
+        },
+        "email": "tuyendung@iot-smart.io",
+        "password": "$2b$10$.1y3hsep.iWTbA4s2NpVu.4H3itcjOf5.YS9RdmH06704aGuHXwL2",
+        "role": "employer",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:56.911Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T17:41:56.911Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce5f54b4d2525561972"
+        },
+        "email": "hr@edusmart.edu.vn",
+        "password": "$2b$10$hTB59kmk4omq.F7E5w7zpO36XFE95Hn7R0RUD0oeb.hGOche/isuC",
+        "role": "employer",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:57.504Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T17:41:57.504Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce5f54b4d2525561978"
+        },
+        "email": "recruitment@mediamax.com",
+        "password": "$2b$10$ny8EraO3jL7AYpJ7NwxSN.YLxOlOjZBweQuaXyblNxclK8L6BG0bi",
+        "role": "employer",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:57.644Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T17:41:57.644Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce5f54b4d252556197e"
+        },
+        "email": "khai13@gmail.com",
+        "password": "$2b$10$dIY.d0Em2t8RP13CTEGjruDPPMpIJiW//y7zwtbTebOnECD7vst6y",
+        "role": "candidate",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:57.780Z"
+        },
+        "updatedAt": {
+          "$date": "2026-06-17T11:06:11.337Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a327341170c3abdf659ebd7"
+        },
+        "email": "khaitran955@gmail.com",
+        "password": "$2b$10$AQmbZmSJxCjLnDo9w1G33ejouipNS2LLgOtEwqxBRQq9r4uEFLA/W",
+        "role": "admin",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-06-17T10:13:21.063Z"
+        },
+        "updatedAt": {
+          "$date": "2026-06-17T10:13:21.063Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce4f54b4d252556194b"
+        },
+        "email": "hr@techlogistics.vn",
+        "password": "$2b$10$ekbcQkVzecJ138.misWQUu6Crr6k5iAWMmHocnuJzkRP3BdDXwTga",
+        "role": "employer",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:56.455Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T17:41:56.455Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce5f54b4d2525561962"
+        },
+        "email": "career@fintech-asia.com",
+        "password": "$2b$10$piTnjMA0cFfoMosTT7LAFeEilLHxDNpO9hZwSl4/h2i0FFjC6QiS6",
+        "role": "employer",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:57.172Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T17:41:57.172Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce5f54b4d252556196c"
+        },
+        "email": "jobs@meditech.vn",
+        "password": "$2b$10$ECFSawyQP4PHKvJb05GF6OtNaInaRPnxqWm7QOAhe03x6awjyHgDe",
+        "role": "employer",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:57.385Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T17:41:57.385Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a172ce5f54b4d2525561984"
+        },
+        "email": "nhi15@gmail.com",
+        "password": "$2b$10$//AW7Ek0qodqcuog5wLkuuql2UfLKtSz8fbFusO.JkfDff7U24Pqq",
+        "role": "candidate",
+        "isEmailSubscribed": true,
+        "jobMatchFrequency": "daily",
+        "minMatchScore": 70,
+        "status": "active",
+        "createdAt": {
+          "$date": "2026-05-27T17:41:57.913Z"
+        },
+        "updatedAt": {
+          "$date": "2026-05-27T18:06:40.795Z"
+        },
+        "__v": 0
+      }
+    ],
+    "jobs": [],
+    "cvprofiles": [
+      {
+        "_id": {
+          "$oid": "6a5b83d7e56882c9738915bc"
+        },
+        "userId": {
+          "$oid": "6a5b83d7e56882c9738915b9"
+        },
+        "fullName": "Khải Trần Quang",
+        "email": "khaitran955@gmail.com",
+        "summary": "Hồ sơ được tạo tự động từ liên kết Google.",
+        "skills": [],
+        "embedding": [],
+        "isLookingForJob": true,
+        "isPrimary": false,
+        "experience": [],
+        "education": [],
+        "createdAt": {
+          "$date": "2026-07-18T13:47:03.630Z"
+        },
+        "updatedAt": {
+          "$date": "2026-07-18T13:47:03.630Z"
+        },
+        "__v": 0
+      },
+      {
+        "_id": {
+          "$oid": "6a5d55f5db8d7d0836139faa"
+        },
+        "userId": {
+          "$oid": "6a172ce5f54b4d252556197e"
+        },
+        "fullName": "TRẦN QUANG KHẢI",
+        "headline": "SOFTWARE ENGINEER",
+        "email": "khaitran955@gmail.com",
+        "phone": "0944337637",
+        "location": "Da Nang, Vietnam",
+        "address": "Son Tra, Da Nang",
+        "dateOfBirth": "",
+        "website": "https://github.com/JFKhai",
+        "summary": "Final-year Information Technology student with skills in React.js, Node.js, HTML, and CSS. Passionate about building scalable web applications and aspiring to become a professional full-stack developer.",
+        "skills": [
+          "Logical thinking",
+          "Software debugging",
+          "Computer programming",
+          "Problem solving",
+          "Conflict resolution",
+          "Team collaboration",
+          "JavaScript",
+          "HTML",
+          "CSS",
+          "React.js",
+          "Node.js",
+          "MongoDB",
+          "SQL",
+          "Git",
+          "RESTful APIs"
+        ],
+        "certifications": "",
+        "experience": [
+          {
+            "company": "Xem chi tiết",
+            "position": "Xem chi tiết",
+            "description": "Frontend Developer tại VACCINATION SUPPORT WEB APPLICATION FOR PREVENTIVE HEALTH CENTERS (Team Project) (2024 - 2024)\nDeveloped the user interface of a vaccine registration and management platform using React.js. Implemented core features such as user registration, personal vaccination profile management, vaccine information lookup, and appointment booking at health centers. Built intuitive interfaces for health staff to track vaccine inventory and manage expiration status. Designed and implemented dynamic vaccination scheduling logic. Collaborated closely with the backend team (NestJS, MySQL) to integrate APIs.\n\nDeveloper tại TASK MANAGER WEB APP (Individual Project) (2024 - nay)\nDesigned and built a full-stack task management web application using React (Vite), Tailwind CSS, and Node.js with Express & MongoDB. Implemented secure user authentication and authorization using JWT and protected routes. Developed robust CRUD functionality for task operations. Integrated task statistics dashboard, auto-overdue detection, and smart filtering.\n\nDeveloper tại TAP IN ORDER ( - nay)\nDeveloped a mini–game using React.js where players must tap numbered points in ascending order without mistakes. Built responsive game UI with smooth animations. Implemented auto–play mode, dynamic point generation, and collision-free position rendering. Managed scalable gameplay logic and optimized performance.",
+            "_id": {
+              "$oid": "6a5d581adb8d7d0836139fd3"
+            }
+          }
+        ],
+        "education": [
+          {
+            "school": "Software Engineering (Faculty: Information Technology) — The University of Science and Technology – The University of Danang (DUT)",
+            "major": "",
+            "gpa": "",
+            "_id": {
+              "$oid": "6a5d581adb8d7d0836139fd4"
+            }
+          }
+        ],
+        "embedding": [],
+        "isLookingForJob": true,
+        "isPrimary": true,
+        "fileUrl": "cvs/6a172ce5f54b4d252556197e-1784501748295.pdf",
+        "createdAt": {
+          "$date": "2026-07-19T22:55:49.476Z"
+        },
+        "updatedAt": {
+          "$date": "2026-07-19T23:04:58.698Z"
+        },
+        "__v": 1
+      }
+    ],
+    "applications": [],
+    "notifications": [],
+    "systemsettings": [
+      {
+        "_id": {
+          "$oid": "6a603ae620bad5eecdcfeb2c"
+        },
+        "key": "email_matching_settings",
+        "value": {
+          "isEnabled": true,
+          "scheduleType": "daily",
+          "cronExpression": "0 7,17 * * *"
+        },
+        "createdAt": {
+          "$date": "2026-07-22T03:37:10.309Z"
+        },
+        "updatedAt": {
+          "$date": "2026-07-22T03:37:10.309Z"
+        },
+        "__v": 0
+      }
+    ],
+    "companyprofiles": [],
+    "jobalerts": [],
+    "companyreviews": []
+  }
+}
