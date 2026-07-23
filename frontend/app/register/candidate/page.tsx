@@ -65,7 +65,7 @@ export default function CandidateSignupPage() {
         skipAuth: true,
       })
 
-      setAuth(data.token, {
+      setAuth({
         id: data._id,
         email: data.email,
         role: data.role,

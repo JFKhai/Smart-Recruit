@@ -146,7 +146,7 @@ export default function EmployerSignupPage() {
         skipAuth: true,
       })
 
-      setAuth(data.token, {
+      setAuth({
         id: data._id,
         email: data.email,
         role: data.role,
