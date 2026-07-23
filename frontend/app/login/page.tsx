@@ -161,7 +161,7 @@ function LoginContent() {
                       <input type="checkbox" className="rounded" />
                       <span className="text-foreground/70">Remember me</span>
                     </label>
-                    <Link href="#" className="text-primary hover:underline">
+                    <Link href="/forgot-password" className="text-primary hover:underline">
                       Forgot password?
                     </Link>
                   </div>
@@ -253,7 +253,7 @@ function LoginContent() {
                       <input type="checkbox" className="rounded" />
                       <span className="text-foreground/70">Remember me</span>
                     </label>
-                    <Link href="#" className="text-primary hover:underline">
+                    <Link href="/forgot-password" className="text-primary hover:underline">
                       Forgot password?
                     </Link>
                   </div>

@@ -172,7 +172,66 @@ const sendJobAlertEmail = async (target, alert, matchedJobs) => {
   }
 };
 
+const sendEmail = async ({ to, subject, html }) => {
+  try {
+    const t = await initTransporter();
+    if (!t) throw new Error('Transporter not ready');
+
+    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <onboarding@resend.dev>';
+    const mailOptions = {
+      from: sender,
+      to,
+      subject,
+      html,
+    };
+
+    const info = await t.sendMail(mailOptions);
+    console.log(`[Email Service] Đã gửi email thành công tới ${to} (MessageID: ${info.messageId})`);
+    return info;
+  } catch (error) {
+    console.error(`[Email Service] Lỗi gửi email tới ${to}:`, error.message);
+    throw error;
+  }
+};
+
+const sendPasswordResetEmail = async ({ to, fullName, resetUrl }) => {
+  const subject = '[Smart Recruit] Yêu cầu Đặt lại Mật khẩu';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background-color: #ffffff;">
+      <div style="text-align: center; padding-bottom: 20px;">
+        <h1 style="color: #6d28d9; margin: 0;">Smart Recruit</h1>
+        <p style="color: #64748b; margin-top: 4px; font-size: 14px;">Hệ thống Tuyển dụng Thông minh AI</p>
+      </div>
+      
+      <div style="padding: 20px; background-color: #f8fafc; border-radius: 6px; border-left: 4px solid #7c3aed;">
+        <h2 style="margin-top: 0; color: #1e1b4b; font-size: 18px;">🔑 Yêu cầu Đặt lại Mật khẩu</h2>
+        <p style="color: #334155; font-size: 14px; line-height: 1.6;">
+          Xin chào <strong>${fullName || to}</strong>,<br/>
+          Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn tại Smart Recruit.
+        </p>
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="${resetUrl}" style="background-color: #7c3aed; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.3);">
+            Đặt lại Mật khẩu Ngay
+          </a>
+        </div>
+        <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
+          ⚠️ <em>Đường dẫn này có hiệu lực trong vòng <strong>60 phút</strong>. Nếu bạn không đưa ra yêu cầu này, vui lòng bỏ qua email và mật khẩu của bạn vẫn an toàn.</em>
+        </p>
+      </div>
+      
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #94a3b8; text-align: center;">
+        © Smart Recruit System · Hỗ trợ bảo mật tài khoản tự động
+      </p>
+    </div>
+  `;
+
+  return sendEmail({ to, subject, html });
+};
+
 module.exports = {
   sendJobMatchEmail,
   sendJobAlertEmail,
+  sendEmail,
+  sendPasswordResetEmail,
 };

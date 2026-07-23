@@ -126,12 +126,11 @@ const logout = (req, res) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        expires: new Date(0), // Đặt thời gian hết hạn trong quá khứ để xóa cookie
     };
     if (process.env.COOKIE_DOMAIN) {
         cookieOptions.domain = process.env.COOKIE_DOMAIN;
     }
-    res.cookie('token', '', cookieOptions);
+    res.clearCookie('token', cookieOptions);
     res.status(200).json({ message: 'Đăng xuất thành công' });
 };
 
@@ -373,6 +372,100 @@ const facebookCallback = async (req, res) => {
     }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  const genericMessage = 'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi hướng dẫn đặt lại mật khẩu.';
+
+  try {
+    if (!email) {
+      return res.status(400).json({ message: 'Vui lòng nhập địa chỉ email.' });
+    }
+
+    const user = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+      status: 'active',
+      isDeleted: { $ne: true },
+    });
+
+    // Anti-user enumeration: Always return generic success message even if email not found
+    if (!user) {
+      return res.json({ message: genericMessage });
+    }
+
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    user.resetPasswordToken = resetTokenHash;
+    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+    await user.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+    const emailService = require('../services/emailService');
+    await emailService.sendPasswordResetEmail({
+      to: user.email,
+      fullName: user.email.split('@')[0],
+      resetUrl,
+    });
+
+    return res.json({ message: genericMessage });
+  } catch (error) {
+    console.error('[ForgotPassword Error]:', error.message);
+    return res.json({ message: genericMessage });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+
+  try {
+    if (!token) {
+      return res.status(400).json({ message: 'Mã xác thực đặt lại mật khẩu không hợp lệ.' });
+    }
+
+    if (!password || String(password).length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+    }
+
+    const crypto = require('crypto');
+    const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: resetTokenHash,
+      resetPasswordExpire: { $gt: Date.now() },
+      isDeleted: { $ne: true },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Mã xác thực không hợp lệ hoặc đã hết hạn.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(password, salt);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    // Clear any active session cookie if logged in
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    };
+    if (process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+    res.clearCookie('token', cookieOptions);
+
+    return res.json({ message: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới.' });
+  } catch (error) {
+    console.error('[ResetPassword Error]:', error.message);
+    res.status(500).json({ message: 'Lỗi máy chủ khi đặt lại mật khẩu.' });
+  }
+};
+
 module.exports = {
     register,
     login,
@@ -381,5 +474,7 @@ module.exports = {
     googleAuth,
     googleCallback,
     facebookAuth,
-    facebookCallback
+    facebookCallback,
+    forgotPassword,
+    resetPassword,
 };

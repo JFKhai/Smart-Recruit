@@ -339,6 +339,34 @@ const setPrimaryCV = async (req, res) => {
   }
 };
 
+const retryCvAiCandidate = async (req, res) => {
+  try {
+    const cv = await CvProfile.findById(req.params.id);
+    if (!cv) {
+      return res.status(404).json({ message: 'Không tìm thấy hồ sơ CV.' });
+    }
+    if (cv.userId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Bạn không có quyền thao tác trên CV này.' });
+    }
+    if (cv.processingStatus !== 'failed') {
+      return res.status(400).json({ message: 'Chỉ có thể thử lại đối với các CV bị lỗi bóc tách.' });
+    }
+    if (!cv.fileUrl) {
+      return res.status(400).json({ message: 'Hồ sơ CV không có file PDF đính kèm để bóc tách lại.' });
+    }
+
+    cv.processingStatus = 'queued';
+    cv.processingError = null;
+    cv.attempts = 0;
+    cv.lastAiAttemptAt = new Date();
+    await cv.save();
+
+    res.json({ message: 'Đã đưa CV vào hàng chờ bóc tách lại AI thành công!', data: cv });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   uploadCv,
   getMyCvProfiles,
@@ -347,6 +375,7 @@ module.exports = {
   updateCvProfile,
   deleteCvProfile,
   setPrimaryCV,
-  downloadCv, // Export downloadCv route
+  downloadCv,
+  retryCvAiCandidate,
 };
 

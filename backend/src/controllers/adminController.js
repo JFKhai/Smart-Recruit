@@ -172,22 +172,10 @@ const resetUserPasswordByAdmin = async (req, res) => {
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     const emailService = require('../services/emailService');
-    await emailService.sendEmail({
+    await emailService.sendPasswordResetEmail({
       to: user.email,
-      subject: '[Smart Recruit] Yêu cầu Đặt lại Mật khẩu từ Quản trị viên',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #6d28d9;">🔑 Đặt lại Mật khẩu Hỗ trợ</h2>
-          <p>Xin chào <strong>${user.fullName || user.email}</strong>,</p>
-          <p>Quản trị viên hệ thống Smart Recruit đã khởi tạo yêu cầu hỗ trợ đặt lại mật khẩu cho tài khoản của bạn.</p>
-          <p style="margin: 20px 0;">
-            <a href="${resetUrl}" style="background-color: #7c3aed; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-              Đặt lại Mật khẩu Ngay
-            </a>
-          </p>
-          <p style="font-size: 13px; color: #666;">Đường dẫn này có hiệu lực trong vòng 60 phút. Nếu bạn không đưa ra yêu cầu này, vui lòng bỏ qua email.</p>
-        </div>
-      `,
+      fullName: user.fullName || user.email,
+      resetUrl,
     });
 
     await logAdminAction({

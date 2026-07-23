@@ -39,6 +39,8 @@ type CvData = {
   hasEmbedding?: boolean
   fileUrl?: string
   createdAt?: string
+  processingStatus?: 'queued' | 'processing' | 'ready' | 'failed'
+  processingError?: string
 }
 
 const emptyData: CvData = {
@@ -57,6 +59,7 @@ const emptyData: CvData = {
   certifications: '',
   isPrimary: false,
   hasEmbedding: false,
+  processingStatus: 'ready',
 }
 
 const themeOptions = [
@@ -101,6 +104,8 @@ function mapCvFromApi(cv: any, userEmail: string): CvData {
     hasEmbedding: cv.embedding && cv.embedding.length > 0,
     fileUrl: cv.fileUrl || '',
     createdAt: cv.createdAt || '',
+    processingStatus: cv.processingStatus || 'ready',
+    processingError: cv.processingError || '',
   }
 }
 
@@ -230,6 +235,39 @@ export default function CVPage() {
     }
     loadCv()
   }, [])
+
+  // Tự động poll cập nhật trạng thái bóc tách AI mỗi 5 giây khi có CV đang queued / processing
+  useEffect(() => {
+    const hasPending = cvList.some(
+      (c) => c.processingStatus === 'queued' || c.processingStatus === 'processing'
+    )
+    if (!hasPending) return
+
+    const interval = setInterval(async () => {
+      try {
+        const cvRes = await apiFetch<{ data: any[] }>('/api/cv')
+        const all = cvRes.data || []
+        const mapped = all.map((cv: any) => mapCvFromApi(cv, userEmail))
+        setCvList(mapped)
+      } catch (err) {
+        console.error('Lỗi khi cập nhật trạng thái CV:', err)
+      }
+    }, 5000)
+
+    return () => clearInterval(interval)
+  }, [cvList, userEmail])
+
+  const handleRetryAi = async (id: string) => {
+    try {
+      const res = await apiFetch<{ message: string }>(`/api/cv/${id}/retry`, { method: 'POST' })
+      toast.success(res.message || 'Đã đưa CV vào hàng chờ bóc tách lại AI!')
+      const cvRes = await apiFetch<{ data: any[] }>('/api/cv')
+      const all = cvRes.data || []
+      setCvList(all.map((cv: any) => mapCvFromApi(cv, userEmail)))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Không thể thử lại AI')
+    }
+  }
 
   const handleAddSkill = () => {
     const normalizedSkill = newSkill.trim()
@@ -537,13 +575,32 @@ export default function CVPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3 mt-0.5">
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                         {cv.headline && <span className="text-xs text-foreground/50 truncate">{cv.headline}</span>}
-                        {cv.hasEmbedding ? (
-                          <span className="text-xs text-green-600 flex items-center gap-0.5">⚡ AI ready</span>
-                        ) : (
-                          <span className="text-xs text-amber-600">Chưa có AI embedding</span>
+
+                        {cv.processingStatus === 'queued' && (
+                          <span className="text-xs text-blue-500 animate-pulse flex items-center gap-1 font-medium">
+                            ⏳ Đang chờ bóc tách AI...
+                          </span>
                         )}
+                        {cv.processingStatus === 'processing' && (
+                          <span className="text-xs text-amber-500 flex items-center gap-1 font-medium">
+                            <Loader2 className="w-3 h-3 animate-spin" /> AI đang xử lý...
+                          </span>
+                        )}
+                        {cv.processingStatus === 'failed' && (
+                          <span className="text-xs text-red-500 flex items-center gap-1 font-medium" title={cv.processingError}>
+                            ⚠️ Lỗi bóc tách AI
+                          </span>
+                        )}
+                        {(cv.processingStatus === 'ready' || !cv.processingStatus) && (
+                          cv.hasEmbedding ? (
+                            <span className="text-xs text-green-600 flex items-center gap-0.5">⚡ AI ready</span>
+                          ) : (
+                            <span className="text-xs text-amber-600">Chưa có AI embedding</span>
+                          )
+                        )}
+
                         {cv.createdAt && (
                           <span className="text-xs text-foreground/40">
                             {new Date(cv.createdAt).toLocaleDateString('vi-VN')}
@@ -553,6 +610,16 @@ export default function CVPage() {
                     </div>
 
                     <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {cv.processingStatus === 'failed' && cv._id && (
+                        <button
+                          type="button"
+                          onClick={() => cv._id && handleRetryAi(cv._id)}
+                          className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors"
+                          title="Thử lại bóc tách AI"
+                        >
+                          Thử lại AI
+                        </button>
+                      )}
                       {cv.fileUrl && (
                         <a
                           href={`${getApiBase()}/api/cv/${cv._id}/download`}

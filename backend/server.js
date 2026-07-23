@@ -62,6 +62,11 @@ app.use(
 app.use(express.json());
 app.use(cookieParser()); // Đọc HTTPOnly cookie từ request
 
+const helmet = require('helmet');
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP header to allow Next.js cross-origin assets if needed
+}));
+
 // KHÔNG phục vụ thư mục uploads ra public — CV phải qua signed URL (Ngày 4)
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
@@ -105,10 +110,12 @@ app.use("/api/job-alerts", require("./src/routes/jobAlertRoutes"));
 app.use("/api/reviews", require("./src/routes/reviewRoutes"));
 app.use("/api/admin", require("./src/routes/adminRoutes"));
 
-// Debug Sentry endpoint to test error capturing
-app.get("/debug-sentry", (req, res) => {
-  throw new Error("Sentry Debug Backend Error: Kiểm tra giám sát lỗi hoạt động tốt!");
-});
+// Debug Sentry endpoint to test error capturing (only in non-production)
+if (process.env.NODE_ENV !== 'production') {
+  app.get("/debug-sentry", (req, res) => {
+    throw new Error("Sentry Debug Backend Error: Kiểm tra giám sát lỗi hoạt động tốt!");
+  });
+}
 
 // Sentry error handler must be registered before other error handlers and after all controllers
 if (process.env.SENTRY_DSN) {

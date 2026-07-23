@@ -116,7 +116,93 @@ async function runSmokeTests() {
     passedTests++;
   }
 
-  // 4. TEARDOWN CLEANUP (DỌN DẸP DỮ LIỆU THỬ NGHIỆM)
+  // 4. TEST FULL FORGOT PASSWORD & RESET PASSWORD E2E FLOW
+  totalTests++;
+  try {
+    console.log('\n[Test 4] Kiểm tra trọn vẹn luồng Quên mật khẩu → Reset Token → Đăng nhập bằng MK mới...');
+    const crypto = require('crypto');
+    const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/smart-recruit';
+    if (mongoose.connection.readyState !== 1) {
+      await mongoose.connect(mongoUri);
+    }
+
+    // A. Đăng ký tài khoản thử nghiệm với role candidate
+    await makeRequest(
+      `${API_BASE}/api/auth/register`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      {
+        fullName: 'Smoke Test Candidate',
+        email: TEST_EMAIL,
+        password: 'InitialPassword123!',
+        role: 'candidate',
+      }
+    );
+
+    // B. Gọi forgot-password
+    const forgotRes = await makeRequest(
+      `${API_BASE}/api/auth/forgot-password`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      { email: TEST_EMAIL }
+    );
+
+    if (forgotRes.status !== 200) {
+      console.log(`  ❌ FAIL: forgot-password phản hồi status ${forgotRes.status}`);
+    } else {
+      // C. Tạo token thử nghiệm trong DB
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+      await User.updateOne(
+        { email: TEST_EMAIL },
+        {
+          resetPasswordToken: hashedToken,
+          resetPasswordExpire: Date.now() + 3600000,
+        }
+      );
+
+      // C. Reset mật khẩu với token mới
+      const newPassword = 'NewSecretPassword123!';
+      const resetRes = await makeRequest(
+        `${API_BASE}/api/auth/reset-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        },
+        { token: rawToken, password: newPassword }
+      );
+
+      if (resetRes.status !== 200) {
+        console.log(`  ❌ FAIL: reset-password thất bại với status ${resetRes.status}`);
+      } else {
+        // D. Thử đăng nhập lại bằng mật khẩu mới
+        const loginRes = await makeRequest(
+          `${API_BASE}/api/auth/login`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          },
+          { email: TEST_EMAIL, password: newPassword, role: 'candidate' }
+        );
+
+        if (loginRes.status === 200) {
+          console.log('  ✅ PASS: Trọn vẹn luồng Quên mật khẩu → Đổi mật khẩu → Đăng nhập bằng MK mới thành công!');
+          passedTests++;
+        } else {
+          console.log(`  ❌ FAIL: Đăng nhập bằng mật khẩu mới không thành công (status ${loginRes.status})`);
+        }
+      }
+    }
+  } catch (err) {
+    console.log(`  ❌ FAIL: Lỗi kết nối luồng reset-password (${err.message})`);
+  }
+
+  // 5. TEARDOWN CLEANUP (DỌN DẸP DỮ LIỆU THỬ NGHIỆM)
   console.log('\n🧹 === TIẾN HÀNH DỌN DẸP DỮ LIỆU TEST (TEARDOWN) ===');
   try {
     const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/smart-recruit';
