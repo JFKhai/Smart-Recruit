@@ -3,12 +3,13 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import AdminLayout from '@/layouts/AdminLayout'
 import { apiFetch } from '@/lib/api'
-import { Server, RefreshCw, CheckCircle, XCircle, Cpu, Database, Zap, Bell, Play } from 'lucide-react'
+import { Server, RefreshCw, CheckCircle, XCircle, Cpu, Database, Zap, Bell, Play, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { translateCronToVietnamese, isTooFrequentCron } from '@/lib/cron-translator'
 
 type SystemInfo = {
   server: {
@@ -104,6 +105,11 @@ export default function AdminSystemPage() {
   }, [load, loadSettings])
 
   const handleSaveSettings = async () => {
+    if (scheduleType === 'custom' && isTooFrequentCron(cronExpression)) {
+      toast.error('Tần suất quá cao! Vui lòng chọn khoảng thời gian tối thiểu 15 phút hoặc chọn các phương án có sẵn.')
+      return
+    }
+
     setSavingSettings(true)
     try {
       await apiFetch('/api/admin/system/email-settings', {
@@ -272,15 +278,29 @@ export default function AdminSystemPage() {
                 </div>
 
                 {scheduleType === 'custom' && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs text-gray-400">Biểu thức Cron</label>
+                  <div className="space-y-1.5 bg-gray-950/60 p-3 rounded-lg border border-gray-800">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-gray-300">Biểu thức Cron</label>
+                      <a
+                        href="https://crontab.guru"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-violet-400 hover:text-violet-300 flex items-center gap-1 hover:underline font-medium"
+                      >
+                        Tra cứu cú pháp (crontab.guru) <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
                     <Input
                       type="text"
                       value={cronExpression}
                       onChange={(e) => setCronExpression(e.target.value)}
-                      placeholder="e.g., 0 9 * * *"
-                      className="h-8 bg-gray-850 border-gray-800 text-xs text-gray-200 font-mono"
+                      placeholder="e.g., 0 7,17 * * *"
+                      className="h-8 bg-gray-900 border-gray-800 text-xs text-violet-300 font-mono"
                     />
+                    <div className="text-[11px] text-emerald-400 font-medium bg-emerald-950/40 p-2 rounded border border-emerald-900/40 flex items-center gap-1.5 mt-1">
+                      <span>💡 Dịch nghĩa:</span>
+                      <span>{translateCronToVietnamese(cronExpression)}</span>
+                    </div>
                   </div>
                 )}
 

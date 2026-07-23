@@ -29,6 +29,10 @@ const jobSchema = new mongoose.Schema({
         type: String,
         enum: ['open', 'closed', 'archived'],
         default: 'open'
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
     }
 }, { timestamps: true });
 

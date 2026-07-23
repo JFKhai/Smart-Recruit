@@ -51,14 +51,16 @@ const cvProfileSchema = new mongoose.Schema({
 
     processingStatus: {
         type: String,
-        enum: ['queued', 'processing', 'ready', 'failed'],
-        default: 'queued'
+        enum: ['queued', 'processing', 'ready', 'failed', 'completed'],
+        default: 'ready',
+        index: true
     },
     processingError: { type: String },
     attempts: {
         type: Number,
         default: 0
-    }
+    },
+    lastAiAttemptAt: { type: Date }
 }, { timestamps: true });
 
 module.exports = mongoose.model('CvProfile', cvProfileSchema);

@@ -12,6 +12,9 @@ import {
   LogOut,
   ShieldCheck,
   Star,
+  FileCheck2,
+  Cpu,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { clearAuth } from '@/lib/auth-storage'
@@ -21,6 +24,9 @@ const navItems = [
   { label: 'Tổng quan', href: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Tài khoản', href: '/admin/users', icon: Users },
   { label: 'Tin tuyển dụng', href: '/admin/jobs', icon: Briefcase },
+  { label: 'AI Worker & CV', href: '/admin/ai-monitor', icon: Cpu },
+  { label: 'Phát thông báo', href: '/admin/broadcast', icon: Megaphone },
+  { label: 'Nhật ký Audit', href: '/admin/audit-logs', icon: FileCheck2 },
   { label: 'Đánh giá', href: '/admin/reviews', icon: Star },
   { label: 'Hệ thống', href: '/admin/system', icon: Server },
 ]

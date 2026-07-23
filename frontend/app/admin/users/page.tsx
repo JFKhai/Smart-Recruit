@@ -69,12 +69,25 @@ export default function AdminUsersPage() {
     }
   }
 
+  const handleResetPasswordRequest = async (id: string, email: string) => {
+    if (!confirm(`Gửi email hỗ trợ đặt lại mật khẩu khẩn cấp tới "${email}"?`)) return
+    setActionLoading(id + '-reset-pwd')
+    try {
+      const res = await apiFetch<{ message: string }>(`/api/admin/users/${id}/reset-password-request`, { method: 'POST' })
+      toast.success(res.message || 'Đã gửi email hỗ trợ đặt lại mật khẩu!')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Thao tác thất bại')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   const handleDelete = async (id: string, email: string) => {
-    if (!confirm(`Xóa vĩnh viễn tài khoản "${email}"? Hành động này không thể hoàn tác.`)) return
+    if (!confirm(`Hủy kích hoạt & Lưu trữ (xóa mềm) tài khoản "${email}"? Dữ liệu xin việc lịch sử sẽ được bảo toàn.`)) return
     setActionLoading(id + '-delete')
     try {
       await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' })
-      toast.success('Đã xóa tài khoản')
+      toast.success('Đã lưu trữ (xóa mềm) tài khoản')
       setUsers(prev => prev.filter(u => u._id !== id))
       setTotal(t => t - 1)
     } catch (e) {
@@ -180,7 +193,19 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-5 py-4 text-gray-400 text-xs">{new Date(user.createdAt).toLocaleDateString('vi-VN')}</td>
                     <td className="px-5 py-4">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2 flex-wrap">
+                        {user.role !== 'admin' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleResetPasswordRequest(user._id, user.email)}
+                            disabled={actionLoading === user._id + '-reset-pwd'}
+                            className="h-7 text-xs gap-1 border-violet-500/30 text-violet-300 hover:bg-violet-500/10 bg-transparent"
+                          >
+                            🔑 Đặt lại MK
+                          </Button>
+                        )}
+
                         {user.role !== 'admin' && (
                           user.status === 'banned' ? (
                             <Button
@@ -212,7 +237,7 @@ export default function AdminUsersPage() {
                             disabled={actionLoading === user._id + '-delete'}
                             className="h-7 text-xs gap-1 border-red-500/30 text-red-400 hover:bg-red-500/10 bg-transparent"
                           >
-                            <Trash2 className="w-3 h-3" /> Xóa
+                            <Trash2 className="w-3 h-3" /> Xóa mềm
                           </Button>
                         )}
                       </div>
