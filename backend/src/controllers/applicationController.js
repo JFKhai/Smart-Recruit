@@ -116,12 +116,27 @@ const getMyApplications = async (req, res) => {
     const apps = await Application.find({ candidateId: req.user._id })
       .populate({
         path: "jobId",
-        select: "-embedding", 
+        select: "-embedding",
         populate: { path: "employerId", select: "email role" },
       })
       .sort({ appliedAt: -1 });
 
-    res.json({ data: apps });
+    // If jobId is soft-deleted, populate returns null -> map fallback object to prevent UI crash
+    const safeApps = apps.map((app) => {
+      const obj = app.toObject();
+      if (!obj.jobId) {
+        obj.jobId = {
+          _id: app.jobId,
+          title: '[Job post removed or deleted]',
+          location: 'N/A',
+          status: 'closed',
+          isDeleted: true,
+        };
+      }
+      return obj;
+    });
+
+    res.json({ data: safeApps });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -149,8 +164,15 @@ const getApplicationsForJob = async (req, res) => {
     const BASE_URL = `${req.protocol}://${req.get('host')}`;
     const appsWithPdfUrl = apps.map(app => {
       const obj = app.toObject();
-      if (obj.cvProfileId?.fileUrl) {
-        // Point PDF download path directly to our secure controller endpoint to validate permissions (prevent IDOR)
+      // Fallback if candidate account was soft-deleted
+      if (!obj.candidateId) {
+        obj.candidateId = { email: '[Account deleted]', role: 'candidate' };
+      }
+      // Fallback if CV profile was deleted
+      if (!obj.cvProfileId) {
+        obj.cvProfileId = { fullName: '[CV profile deleted]', skills: [] };
+      } else if (obj.cvProfileId.fileUrl) {
+        // Point to secure endpoint to prevent IDOR (only authorized employer with application can download)
         obj.cvProfileId.pdfUrl = `${BASE_URL}/api/cv/${obj.cvProfileId._id}/download`;
       }
       return obj;

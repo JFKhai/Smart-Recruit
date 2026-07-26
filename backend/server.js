@@ -16,6 +16,10 @@ const rateLimit = require("express-rate-limit");
 const connectDB = require("./src/config/db");
 
 const app = express();
+// Trust Reverse Proxy (Render/Railway/Cloudflare) to read real client IP from X-Forwarded-For
+// Without this, express-rate-limit sees all requests coming from the Proxy IP -> rate limits all users unintentionally
+app.set('trust proxy', 1);
+
 const path = require("path");
 const fs = require("fs");
 
@@ -23,19 +27,19 @@ connectDB();
 
 // ─── Rate Limiters ───────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 20,                   // tối đa 20 request / 15 phút
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,                   // max 20 requests / 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Quá nhiều yêu cầu, vui lòng thử lại sau 15 phút.' },
+  message: { message: 'Too many requests, please try again after 15 minutes.' },
 });
 
 const uploadLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 giờ
-  max: 10,                   // tối đa 10 lần upload / giờ
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10,                   // max 10 uploads / hour
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Quá nhiều lần tải lên, vui lòng thử lại sau.' },
+  message: { message: 'Too many uploads, please try again later.' },
 });
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
@@ -158,4 +162,4 @@ const gracefulShutdown = (signal) => {
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // Railway
-process.on('SIGINT',  () => gracefulShutdown('SIGINT'));  // Ctrl+C local
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));  // Ctrl+C local

@@ -33,4 +33,6 @@ Thumbs.db
 *.swp
 
 # ─── Uploads (ephemeral — dùng R2 thay thế) ──────────────────────────────────
-backend/uploads/
+backend/uploads/
+
+docs/
