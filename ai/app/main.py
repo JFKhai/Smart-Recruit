@@ -8,8 +8,8 @@ from app.services.matching_service import calculate_cosine_similarity
 
 app = FastAPI(
     title="Smart Recruit AI Service",
-    description="AI embedding & matching service. Powered by Gemini text-embedding-004 (768 dims).",
-    version="2.0.0",
+    description="AI embedding & matching service. Powered by Gemini Embedding (gemini-embedding-001, 768 dims). Note: Gemini 3.6 Flash is a generative model, not used for embeddings.",
+    version="2.1.0",
 )
 
 
@@ -18,11 +18,14 @@ app = FastAPI(
 def health_check():
     """Endpoint cho Render uptime monitor và Backend kiểm tra AI còn sống không."""
     api_key_set = bool(os.environ.get("GEMINI_API_KEY"))
+    model = os.environ.get("GEMINI_EMBEDDING_MODEL", "models/gemini-embedding-001")
+    dims = int(os.environ.get("GEMINI_EMBEDDING_DIMS", "768"))
     return {
         "status": "ok" if api_key_set else "degraded",
-        "model": "gemini/text-embedding-004",
-        "dimensions": 768,
+        "model": model,
+        "dimensions": dims,
         "gemini_key_configured": api_key_set,
+        "note": "Use gemini-embedding-* for vectors; gemini-3.6-flash is generative only",
     }
 
 

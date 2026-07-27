@@ -1,7 +1,8 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Danh sách model ưu tiên: nếu model đầu bị quá tải/404 sẽ thử model tiếp theo.
-const MODEL_CHAIN = ["gemini-flash-latest", "gemini-2.0-flash", "gemini-1.5-flash"];
+// gemini-1.5-flash / gemini-2.0-flash đã shutdown (2026) → dùng Gemini 3.x Flash.
+const MODEL_CHAIN = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"];
 
 const MAX_RETRIES = 3;
 
