@@ -6,8 +6,11 @@ export type StoredUser = {
   role: 'candidate' | 'employer' | 'admin'
 }
 
-// ✅ P0: Lưu thông tin User để hiển thị UI (id, email, role)
-// Token KHÔNG lưu ở đây nữa — token nằm trong HTTPOnly Cookie do Backend set
+/**
+ * Chỉ lưu metadata để hiển thị UI (tên/email/role trên header).
+ * JWT KHÔNG được lưu ở đây — nằm HTTPOnly cookie do backend set.
+ * Quyền thật luôn lấy từ GET /api/auth/me.
+ */
 export function setAuth(user: StoredUser) {
   if (typeof window === 'undefined') return
   localStorage.setItem(USER_KEY, JSON.stringify(user))
@@ -29,8 +32,7 @@ export function getStoredUser(): StoredUser | null {
   }
 }
 
-// Giữ lại để không phải sửa nhiều nơi đang import nhưng KHÔNG trả về JWT nữa
-// Dùng /api/auth/me để kiểm tra session thật
+/** @deprecated Luôn trả null — không còn JWT phía client */
 export function getToken(): string | null {
   return null
 }

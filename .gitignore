@@ -38,3 +38,13 @@ backend/uploads/
 docs/
 Data/
 .cursor/
+
+.vercel/
+frontend/.vercel/
+dist/
+
+.env.sentry-build-plugin
+frontend/.env.sentry-build-plugin
+
+# TypeScript incremental build cache
+frontend/tsconfig.tsbuildinfo

@@ -2,7 +2,7 @@ import React from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface SkillTagProps {
+type SkillTagProps = {
   skill: string
   onRemove?: (skill: string) => void
   removable?: boolean
@@ -18,29 +18,30 @@ export default function SkillTag({
   className,
 }: SkillTagProps) {
   const variantClasses = {
-    default: 'bg-gray-100 text-gray-700 border-gray-200',
-    match: 'bg-green-50 text-green-700 border-green-200',
-    missing: 'bg-red-50 text-red-700 border-red-200',
+    default: 'bg-muted text-muted-foreground border-border',
+    match: 'bg-primary-soft text-on-primary-soft border-transparent',
+    missing: 'bg-card text-destructive border-border',
   }
 
   return (
-    <div
+    <span
       className={cn(
-        'inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border',
+        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium',
         variantClasses[variant],
-        className
+        className,
       )}
     >
       <span>{skill}</span>
-      {removable && (
+      {removable ? (
         <button
+          type="button"
           onClick={() => onRemove?.(skill)}
-          className="ml-1 hover:bg-black/10 rounded-full p-0.5 transition"
-          aria-label={`Remove ${skill}`}
+          className="rounded-full p-0.5 transition-sr hover:bg-foreground/10"
+          aria-label={`Xóa ${skill}`}
         >
-          <X className="w-3 h-3" />
+          <X className="size-3" />
         </button>
-      )}
-    </div>
+      ) : null}
+    </span>
   )
 }

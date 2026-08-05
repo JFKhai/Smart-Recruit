@@ -1,9 +1,19 @@
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { withSentryConfig } from '@sentry/nextjs';
+
+// Pin the Turbopack root to /frontend: a lockfile also exists at the repo root,
+// and letting Next infer the root changes external-module hashing (breaks Sentry's
+// require-in-the-middle / import-in-the-middle copies).
+const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     unoptimized: true,
+  },
+  turbopack: {
+    root: projectRoot,
   },
 };
 

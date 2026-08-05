@@ -1,45 +1,102 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 
-type Status = 'applied' | 'reviewing' | 'interview' | 'accepted' | 'rejected' | 'active' | 'paused' | 'closed'
+/** Application + Job + legacy aliases */
+export type StatusBadgeStatus =
+  | 'pending'
+  | 'reviewed'
+  | 'interview'
+  | 'accepted'
+  | 'rejected'
+  | 'open'
+  | 'closed'
+  | 'archived'
+  | 'applied'
+  | 'reviewing'
+  | 'active'
+  | 'paused'
 
-interface StatusBadgeProps {
-  status: Status
+type StatusBadgeProps = {
+  status: StatusBadgeStatus
   size?: 'sm' | 'md'
   className?: string
+  label?: string
 }
 
-const statusConfig: Record<Status, { bg: string; text: string; label: string }> = {
-  applied: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Applied' },
-  reviewing: { bg: 'bg-purple-50', text: 'text-purple-700', label: 'Under Review' },
-  interview: { bg: 'bg-orange-50', text: 'text-orange-700', label: 'Interview' },
-  accepted: { bg: 'bg-green-50', text: 'text-green-700', label: 'Accepted' },
-  rejected: { bg: 'bg-red-50', text: 'text-red-700', label: 'Rejected' },
-  active: { bg: 'bg-green-50', text: 'text-green-700', label: 'Active' },
-  paused: { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'Paused' },
-  closed: { bg: 'bg-gray-50', text: 'text-gray-700', label: 'Closed' },
+const statusConfig: Record<
+  StatusBadgeStatus,
+  { className: string; label: string }
+> = {
+  pending: {
+    className: 'bg-primary-soft text-on-primary-soft',
+    label: 'Đã nộp',
+  },
+  applied: {
+    className: 'bg-primary-soft text-on-primary-soft',
+    label: 'Đã nộp',
+  },
+  reviewed: {
+    className: 'bg-muted text-muted-foreground',
+    label: 'Đang xem xét',
+  },
+  reviewing: {
+    className: 'bg-muted text-muted-foreground',
+    label: 'Đang xem xét',
+  },
+  interview: {
+    className: 'bg-hot/15 text-hot-foreground',
+    label: 'Phỏng vấn',
+  },
+  accepted: {
+    className: 'bg-card text-success',
+    label: 'Nhận việc',
+  },
+  rejected: {
+    className: 'bg-card text-destructive',
+    label: 'Từ chối',
+  },
+  open: {
+    className: 'bg-card text-success',
+    label: 'Đang mở',
+  },
+  active: {
+    className: 'bg-card text-success',
+    label: 'Đang mở',
+  },
+  closed: {
+    className: 'bg-muted text-muted-foreground',
+    label: 'Đã đóng',
+  },
+  paused: {
+    className: 'bg-hot/15 text-hot-foreground',
+    label: 'Tạm dừng',
+  },
+  archived: {
+    className: 'bg-muted text-muted-foreground',
+    label: 'Lưu trữ',
+  },
 }
 
-export default function StatusBadge({ status, size = 'md', className }: StatusBadgeProps) {
+export default function StatusBadge({
+  status,
+  size = 'md',
+  className,
+  label,
+}: StatusBadgeProps) {
   const config = statusConfig[status]
-  const sizeClasses = {
-    sm: 'px-2 py-1 text-xs',
-    md: 'px-3 py-1.5 text-sm',
-  }
+  if (!config) return null
 
   return (
-    <div
+    <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full font-medium border',
-        config.bg,
-        config.text,
-        'border-opacity-30',
-        sizeClasses[size],
-        className
+        'inline-flex items-center gap-1.5 rounded-full font-medium',
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-sm',
+        config.className,
+        className,
       )}
     >
-      <span className="w-2 h-2 rounded-full bg-current opacity-70" />
-      <span>{config.label}</span>
-    </div>
+      <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden />
+      {label ?? config.label}
+    </span>
   )
 }

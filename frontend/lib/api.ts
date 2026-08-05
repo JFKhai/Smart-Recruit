@@ -1,4 +1,10 @@
-import { getStoredUser } from '@/lib/auth-storage'
+/**
+ * API client — Smart Recruit
+ *
+ * Auth: HTTPOnly cookie `token` + credentials: 'include'.
+ * CẤM lưu JWT trong localStorage. Session thật = GET /api/auth/me.
+ * localStorage chỉ được chứa user summary (id, email, role) cho UI.
+ */
 
 const DEFAULT_API = 'http://localhost:5000'
 
@@ -22,29 +28,53 @@ export type AuthResponse = {
   _id: string
   email: string
   role: 'candidate' | 'employer' | 'admin'
-  // token KHÔNG còn trong response — server gửi qua HTTPOnly Cookie
 }
 
+function buildUrl(path: string): string {
+  if (path.startsWith('http')) return path
+  const base = getApiBase()
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+function messageFromBody(data: unknown, fallback: string): string {
+  if (typeof data === 'object' && data !== null && 'message' in data) {
+    const m = (data as { message: unknown }).message
+    if (Array.isArray(m)) return m.map(String).join(', ')
+    if (typeof m === 'string') return m
+    if (m != null) return String(m)
+  }
+  return fallback
+}
+
+export type ApiFetchOptions = RequestInit & {
+  /** Giữ để tương thích call site cũ — không còn đọc token */
+  skipAuth?: boolean
+}
+
+/**
+ * Fetch JSON tới backend với cookie session.
+ * Không set Authorization Bearer. Không đọc JWT từ storage.
+ */
 export async function apiFetch<T = unknown>(
   path: string,
-  options: RequestInit & { skipAuth?: boolean } = {},
+  options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { skipAuth: _skipAuth, headers, ...rest } = options
+  const { skipAuth: _skipAuth, headers, body, ...rest } = options
   const h = new Headers(headers)
-  h.set('Content-Type', 'application/json')
 
-  // ✅ P0: Dùng credentials: 'include' để trình duyệt tự gửi HTTPOnly Cookie kèm mọi request
-  // KHÔNG đọc token từ localStorage nữa
-  const base = getApiBase()
-  const url = path.startsWith('http')
-    ? path
-    : `${base}${path.startsWith('/') ? path : `/${path}`}`
+  const isFormData =
+    typeof FormData !== 'undefined' && body instanceof FormData
+  if (!isFormData && body != null && !h.has('Content-Type')) {
+    h.set('Content-Type', 'application/json')
+  }
 
-  const res = await fetch(url, {
+  const res = await fetch(buildUrl(path), {
     ...rest,
+    body,
     headers: h,
-    credentials: 'include', // ← Quan trọng: gửi cookie theo mỗi request
+    credentials: 'include',
   })
+
   const text = await res.text()
   let data: unknown = null
   try {
@@ -54,39 +84,37 @@ export async function apiFetch<T = unknown>(
   }
 
   if (!res.ok) {
-    // ✅ Xử lý 401: Nếu session hết hạn, dọn user metadata và redirect về login
     if (res.status === 401 && typeof window !== 'undefined') {
       const { clearAuth } = await import('@/lib/auth-storage')
       clearAuth()
-      // Tránh redirect loop nếu đang ở trang login
       if (!window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login'
+        const redirect = encodeURIComponent(
+          `${window.location.pathname}${window.location.search}`,
+        )
+        window.location.href = `/login?redirect=${redirect}`
       }
     }
 
-    let msg = res.statusText
-    if (typeof data === 'object' && data !== null && 'message' in data) {
-      const m = (data as { message: unknown }).message
-      if (Array.isArray(m)) {
-        msg = m.map(String).join(', ')
-      } else if (typeof m === 'string') {
-        msg = m
-      } else if (m != null) {
-        msg = String(m)
-      }
-    }
-    throw new ApiError(msg, res.status, data)
+    throw new ApiError(
+      messageFromBody(data, res.statusText || 'Request failed'),
+      res.status,
+      data,
+    )
   }
 
   return data as T
 }
 
-// Helper để gọi logout API và xóa session
+/** Session hiện tại — nguồn chân lý auth (không dùng localStorage làm quyền). */
+export async function apiMe(): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>('/api/auth/me')
+}
+
 export async function apiLogout(): Promise<void> {
   try {
     await apiFetch('/api/auth/logout', { method: 'POST' })
   } catch {
-    // ignore errors during logout
+    // ignore
   } finally {
     const { clearAuth } = await import('@/lib/auth-storage')
     clearAuth()
