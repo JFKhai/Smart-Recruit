@@ -7,25 +7,32 @@ const initTransporter = async () => {
   if (transporter) return transporter;
 
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      console.warn('[Email Service] WARNING: RESEND_API_KEY is not set. Emails will not send.');
+    const host = process.env.EMAIL_HOST || 'smtp-relay.brevo.com';
+    const port = Number(process.env.EMAIL_PORT) || 587;
+    const user = process.env.EMAIL_USER || process.env.BREVO_USER;
+    const pass = process.env.EMAIL_PASS || process.env.BREVO_SMTP_KEY || process.env.RESEND_API_KEY;
+
+    if (!pass) {
+      console.warn('[Email Service] WARNING: Neither EMAIL_PASS, BREVO_SMTP_KEY, nor RESEND_API_KEY is set. Emails will fail.');
     }
 
+    const isSecure = port === 465;
+
     transporter = nodemailer.createTransport({
-      host: 'smtp.resend.com',
-      port: 465,
-      secure: true,
+      host,
+      port,
+      secure: isSecure,
       auth: {
-        user: 'resend', 
-        pass: apiKey, 
+        user: user || 'resend',
+        pass,
       },
+      ...(isSecure ? {} : { tls: { rejectUnauthorized: false } }),
     });
 
-    console.log('[Email Service] Resend SMTP Transporter initialized successfully.');
+    console.log(`[Email Service] SMTP Transporter initialized successfully (${host}:${port}).`);
     return transporter;
   } catch (error) {
-    console.error('[Email Service] Error initializing Resend SMTP Transporter:', error);
+    console.error('[Email Service] Error initializing SMTP Transporter:', error);
     return null;
   }
 };
@@ -38,7 +45,7 @@ const sendJobMatchEmail = async (user, matchedJobs) => {
     if (!matchedJobs || matchedJobs.length === 0) return;
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <onboarding@resend.dev>';
+    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <khaitran955@gmail.com>';
 
     const jobsHtml = matchedJobs.map(job => `
       <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 16px; background-color: #f8fafc;">
@@ -104,7 +111,7 @@ const sendJobAlertEmail = async (target, alert, matchedJobs) => {
     if (!matchedJobs || matchedJobs.length === 0) return;
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <onboarding@resend.dev>';
+    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <khaitran955@gmail.com>';
 
     const jobsHtml = matchedJobs
       .map((job) => {
@@ -177,7 +184,7 @@ const sendEmail = async ({ to, subject, html }) => {
     const t = await initTransporter();
     if (!t) throw new Error('Transporter not ready');
 
-    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <onboarding@resend.dev>';
+    const sender = process.env.SENDER_EMAIL || 'Smart Recruit <khaitran955@gmail.com>';
     const mailOptions = {
       from: sender,
       to,
@@ -190,6 +197,7 @@ const sendEmail = async ({ to, subject, html }) => {
     return info;
   } catch (error) {
     console.error(`[Email Service] Lỗi gửi email tới ${to}:`, error.message);
+    transporter = null;
     throw error;
   }
 };
